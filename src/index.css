@@ -102,19 +102,57 @@
     @apply inline-block w-2 h-5 bg-terminal-green ml-1 animate-blink;
   }
 
-  .risk-gauge {
-    position: relative;
-  }
-
-  .risk-gauge-arc {
-    stroke-dasharray: 283;
-    stroke-linecap: round;
-    transform: rotate(-90deg);
-    transform-origin: center;
-  }
-
   .badge-enterprise {
     @apply bg-silver/10 border border-silver/50 text-silver font-mono text-sm px-4 py-1.5 rounded-full;
+  }
+
+  .hexagon-gauge {
+    width: 220px;
+    height: 220px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: #1E1E1E;
+    border: 3px solid #E11D48;
+    box-shadow: 0 0 40px rgba(225, 29, 72, 0.4);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hexagon-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(225, 29, 72, 0.3);
+    transition: height 1.5s ease-out;
+    z-index: 1;
+  }
+
+  .hexagon-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .hexagon-score {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1;
+  }
+
+  .hexagon-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #E11D48;
+    letter-spacing: 0.05em;
+    margin-top: 0.5rem;
   }
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileText, FileSearch, Download, AlertTriangle, Shield, Server, Globe, Lock } from 'lucide-react';
+import { FileText, FileSearch, Download, AlertTriangle, Globe } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -47,19 +47,15 @@ const vulnerabilities = [
 ];
 
 export default function ReportsPage() {
-  const [animatedScore, setAnimatedScore] = useState(0);
+  const [animatedFill, setAnimatedFill] = useState(0);
   const score = 72;
-  const gaugeCircumference = 283;
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setAnimatedScore(score);
+      setAnimatedFill(score);
     }, 300);
     return () => clearTimeout(timer);
   }, []);
-
-  const gaugeOffset = gaugeCircumference - (animatedScore / 100) * gaugeCircumference;
-  const needleAngle = -90 + (animatedScore / 100) * 180;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -91,52 +87,15 @@ export default function ReportsPage() {
 
           {/* Risk Score Gauge */}
           <div className="flex justify-center mb-12">
-            <div className="relative w-64 h-40">
-              <svg className="w-full h-full" viewBox="0 0 100 60">
-                {/* Background arc */}
-                <path
-                  d="M 10 55 A 40 40 0 0 1 90 55"
-                  fill="none"
-                  stroke="#2C2C2C"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                />
-                {/* Filled arc */}
-                <path
-                  d="M 10 55 A 40 40 0 0 1 90 55"
-                  fill="none"
-                  stroke="#E11D48"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={gaugeCircumference}
-                  strokeDashoffset={gaugeOffset}
-                  className="transition-all duration-1500 ease-out"
-                  style={{ transform: 'rotate(0deg)', transformOrigin: 'center' }}
-                />
-                {/* Center text */}
-                <text
-                  x="50"
-                  y="42"
-                  textAnchor="middle"
-                  className="font-heading font-bold text-2xl fill-primary-text"
-                >
-                  {animatedScore}/100
-                </text>
-                <text
-                  x="50"
-                  y="52"
-                  textAnchor="middle"
-                  className="font-heading font-semibold text-xs fill-danger"
-                >
-                  HIGH RISK
-                </text>
-              </svg>
-              {/* Needle */}
+            <div className="hexagon-gauge">
               <div
-                className="absolute bottom-0 left-1/2 w-1 h-12 bg-silver origin-bottom transition-transform duration-1500 ease-out rounded-full"
-                style={{ transform: `translateX(-50%) rotate(${needleAngle}deg)` }}
+                className="hexagon-fill"
+                style={{ height: `${animatedFill}%` }}
               />
-              <div className="absolute bottom-0 left-1/2 w-3 h-3 bg-white rounded-full -translate-x-1/2 translate-y-1/2" />
+              <div className="hexagon-content">
+                <span className="hexagon-score font-heading">{score}</span>
+                <span className="hexagon-label font-heading">HIGH RISK</span>
+              </div>
             </div>
           </div>
 
