@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FileText, FileSearch, Download, AlertTriangle, Globe } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -165,10 +166,12 @@ export default function ReportsPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap justify-center gap-4">
-            <button className="btn-primary flex items-center space-x-2 px-8 py-4">
-              <FileText className="w-5 h-5" />
-              <span>View Executive Report</span>
-            </button>
+            <Link to="/executive-report">
+              <button className="btn-primary flex items-center space-x-2 px-8 py-4">
+                <FileText className="w-5 h-5" />
+                <span>View Executive Report</span>
+              </button>
+            </Link>
             <button className="btn-outline flex items-center space-x-2 px-8 py-4">
               <FileSearch className="w-5 h-5" />
               <span>View Technical Report</span>
