@@ -28,6 +28,7 @@ export default {
         heading: ['Space Grotesk', 'sans-serif'],
         body: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
+        orbitron: ['Orbitron', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out forwards',

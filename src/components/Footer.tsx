@@ -1,14 +1,26 @@
-import { ShieldAlert } from 'lucide-react';
-
 export default function Footer() {
   return (
     <footer className="py-12 bg-secondary-bg border-t border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex flex-col items-center md:items-start">
-            <div className="flex items-center space-x-2 mb-2">
-              <ShieldAlert className="w-6 h-6 text-silver" />
-              <span className="font-heading font-bold text-xl text-primary-text">Revel</span>
+            <div className="flex items-center space-x-2.5 mb-2">
+              <img
+                src="/revel_logo.jpeg"
+                alt="Revel"
+                className="h-8 w-auto rounded-sm transition-all duration-300"
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLImageElement).style.boxShadow =
+                    '0 0 15px rgba(192, 192, 192, 0.3)')
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLImageElement).style.boxShadow = 'none')
+                }
+              />
+              <span className="font-orbitron font-bold text-xl tracking-wide">
+                <span className="text-danger">R</span>
+                <span className="text-primary-text">evel</span>
+              </span>
             </div>
             <p className="text-secondary-text text-sm">Reveal the Risk. Close the Hole.</p>
           </div>

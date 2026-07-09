@@ -136,9 +136,23 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <a href="#" className="flex items-center space-x-2">
-                <ShieldAlert className="w-8 h-8 text-danger" />
-                <span className="font-heading font-bold text-xl text-primary-text">Revel</span>
+              <a href="#" className="flex items-center space-x-2.5">
+                <img
+                  src="/revel_logo.jpeg"
+                  alt="Revel"
+                  className="h-8 w-auto rounded-sm transition-all duration-300"
+                  onMouseEnter={(e) =>
+                    ((e.currentTarget as HTMLImageElement).style.boxShadow =
+                      '0 0 15px rgba(192, 192, 192, 0.3)')
+                  }
+                  onMouseLeave={(e) =>
+                    ((e.currentTarget as HTMLImageElement).style.boxShadow = 'none')
+                  }
+                />
+                <span className="font-orbitron font-bold text-xl tracking-wide">
+                  <span className="text-danger">R</span>
+                  <span className="text-primary-text">evel</span>
+                </span>
               </a>
             </div>
             <div className="hidden md:flex items-center space-x-8">

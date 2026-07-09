@@ -4,10 +4,12 @@ import ScanPage from './pages/ScanPage';
 import LoadingPage from './pages/LoadingPage';
 import ReportsPage from './pages/ReportsPage';
 import ExecutiveReportPage from './pages/ExecutiveReportPage';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/scan" element={<ScanPage />} />
