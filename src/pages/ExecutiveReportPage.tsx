@@ -394,10 +394,12 @@ export default function ExecutiveReportPage() {
 
           {/* ── ACTION BUTTONS ────────────────────────────────────── */}
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4 animate-slide-up animate-delay-600">
-            <button className="btn-primary flex items-center justify-center space-x-2 px-8 py-4">
-              <FileText className="w-5 h-5" />
-              <span>View Technical Report</span>
-            </button>
+            <Link to="/technical-report">
+              <button className="btn-primary flex items-center justify-center space-x-2 px-8 py-4">
+                <FileText className="w-5 h-5" />
+                <span>View Technical Report</span>
+              </button>
+            </Link>
             <button className="btn-silver flex items-center justify-center space-x-2 px-8 py-4">
               <Download className="w-5 h-5" />
               <span>Download PDF Report</span>

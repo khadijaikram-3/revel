@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield } from 'lucide-react';
 
 const scanStages = [
   'Initializing Scan Engine...',
@@ -57,8 +56,22 @@ export default function LoadingPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <Shield className="w-10 h-10 text-danger" />
-            <span className="font-heading font-bold text-2xl text-primary-text">Revel</span>
+            <img
+              src="/revel_logo.jpeg"
+              alt="Revel"
+              className="h-10 w-auto rounded-sm transition-all duration-300"
+              onMouseEnter={(e) =>
+                ((e.currentTarget as HTMLImageElement).style.boxShadow =
+                  '0 0 15px rgba(192, 192, 192, 0.3)')
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget as HTMLImageElement).style.boxShadow = 'none')
+              }
+            />
+            <span className="font-orbitron font-bold text-2xl tracking-wide">
+              <span className="text-danger">R</span>
+              <span className="text-primary-text">evel</span>
+            </span>
           </div>
           <span className="badge-enterprise">Enterprise Scan</span>
         </div>
