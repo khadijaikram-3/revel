@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import SplashScreen from './components/SplashScreen';
 import LandingPage from './pages/LandingPage';
 import ScanPage from './pages/ScanPage';
 import LoadingPage from './pages/LoadingPage';
@@ -10,6 +11,7 @@ import ScrollToTop from './components/ScrollToTop';
 function App() {
   return (
     <Router>
+      <SplashScreen />
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<LandingPage />} />

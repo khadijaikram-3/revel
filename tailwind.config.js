@@ -41,6 +41,7 @@ export default {
         'gauge-fill': 'gaugeFill 1.5s ease-out forwards',
         'needle-swing': 'needleSwing 1.5s ease-out forwards',
         'card-enter': 'cardEnter 0.4s ease-out forwards',
+        'splash-pulse': 'splashPulse 2s ease-in-out',
       },
       keyframes: {
         fadeIn: {
@@ -82,6 +83,11 @@ export default {
         cardEnter: {
           '0%': { opacity: '0', transform: 'translateY(20px) scale(0.95)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        splashPulse: {
+          '0%': { opacity: '0.4', transform: 'scale(0.92)' },
+          '50%': { opacity: '1', transform: 'scale(1.05)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
       },
       backdropBlur: {
