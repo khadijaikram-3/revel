@@ -1,12 +1,12 @@
 /**
  * Groq AI integration for generating Executive and Technical reports.
- * Uses the mixtral-8x7b-32768 model via the Groq API.
+ * Uses the gpt-oss-120b model via the Groq API.
  */
 
 const axios = require('axios');
 
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'mixtral-8x7b-32768';
+const GROQ_MODEL = 'gpt-oss-120b';
 
 /**
  * Call the Groq API with a system + user prompt.

@@ -1,5 +1,5 @@
 /**
- * Security API integrations — VirusTotal, Shodan, SecurityTrails.
+ * Security API integrations — VirusTotal and Shodan.
  * Each function tries the real API and falls back to mock data on failure.
  */
 
@@ -32,9 +32,9 @@ async function checkVirusTotal(targetUrl) {
 }
 
 /**
- * Scan open ports via Shodan.
+ * Scan open ports, DNS, subdomains, and server fingerprint via Shodan.
  * @param {string} ipOrHost
- * @returns {Promise<object>} port data
+ * @returns {Promise<object>} host intelligence data
  */
 async function checkShodan(ipOrHost) {
   const apiKey = process.env.SHODAN_API_KEY;
@@ -45,13 +45,35 @@ async function checkShodan(ipOrHost) {
       `https://api.shodan.io/shodan/host/${ipOrHost}?key=${apiKey}`,
       { timeout: 10000 }
     );
+    const d = response.data || {};
     return {
       source: 'shodan',
       status: 'success',
       data: {
-        ports: response.data?.ports || [],
-        hostnames: response.data?.hostnames || [],
-        org: response.data?.org || 'Unknown',
+        ports: d.ports || [],
+        hostnames: d.hostnames || [],
+        org: d.org || 'Unknown',
+        os: d.os || 'Unknown',
+        dns: {
+          resolver: d.tags?.includes('resolver') || false,
+          records: d.domains || [],
+        },
+        subdomains: d.domains || [],
+        serverFingerprint: {
+          product: d.product || 'Unknown',
+          version: d.version || 'Unknown',
+          cpe: d.cpe23 || null,
+          banners: (d.data || []).slice(0, 3).map((entry) => ({
+            port: entry.port,
+            banner: (entry.data || '').substring(0, 500),
+          })),
+        },
+        location: {
+          country: d.country_name || 'Unknown',
+          city: d.city || 'Unknown',
+          latitude: d.latitude || null,
+          longitude: d.longitude || null,
+        },
       },
     };
   } catch (error) {
@@ -60,35 +82,43 @@ async function checkShodan(ipOrHost) {
 }
 
 /**
- * Get DNS and subdomain info via SecurityTrails.
+ * Get DNS info via Shodan DNS API (separate endpoint).
  * @param {string} domain
  * @returns {Promise<object>} DNS data
  */
-async function checkSecurityTrails(domain) {
-  const apiKey = process.env.SECURITYTRAILS_API_KEY;
-  if (!apiKey) return { source: 'securitytrails', status: 'skipped', data: null };
+async function checkShodanDNS(domain) {
+  const apiKey = process.env.SHODAN_API_KEY;
+  if (!apiKey) return { source: 'shodan-dns', status: 'skipped', data: null };
 
   try {
     const response = await axios.get(
-      `https://api.securitytrails.com/v1/domain/${domain}`,
-      { headers: { APIKEY: apiKey }, timeout: 10000 }
+      `https://api.shodan.io/dns/domain/${domain}?key=${apiKey}`,
+      { timeout: 10000 }
     );
+    const d = response.data || {};
     return {
-      source: 'securitytrails',
+      source: 'shodan-dns',
       status: 'success',
       data: {
-        subdomains: response.data?.subdomains?.length || 0,
-        dns: response.data?.current_dns || {},
+        domain: d.domain || domain,
+        subdomains: (d.subdomains || []).map((s) => `${s}.${domain}`),
+        tags: d.tags || [],
+        dnsRecords: (d.data || []).slice(0, 20).map((r) => ({
+          type: r.type,
+          value: r.value,
+          subdomain: r.subdomain || '',
+          ttl: r.ttl || null,
+        })),
       },
     };
   } catch (error) {
-    return { source: 'securitytrails', status: 'error', error: error.message, data: null };
+    return { source: 'shodan-dns', status: 'error', error: error.message, data: null };
   }
 }
 
 /**
  * Run all security API checks for a target URL.
- * Returns results from all three APIs — each independently succeeds or falls back.
+ * Returns results from all APIs — each independently succeeds or falls back.
  * @param {string} targetUrl
  * @returns {Promise<object>} aggregated API results
  */
@@ -96,17 +126,17 @@ async function runSecurityAPIChecks(targetUrl) {
   const hostname = targetUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   const domain = hostname.split('.').slice(-2).join('.');
 
-  const [virustotal, shodan, securitytrails] = await Promise.allSettled([
+  const [virustotal, shodan, shodanDns] = await Promise.allSettled([
     checkVirusTotal(targetUrl),
     checkShodan(hostname),
-    checkSecurityTrails(domain),
+    checkShodanDNS(domain),
   ]);
 
   return {
     virustotal: virustotal.status === 'fulfilled' ? virustotal.value : { source: 'virustotal', status: 'error', data: null },
     shodan: shodan.status === 'fulfilled' ? shodan.value : { source: 'shodan', status: 'error', data: null },
-    securitytrails: securitytrails.status === 'fulfilled' ? securitytrails.value : { source: 'securitytrails', status: 'error', data: null },
+    shodanDns: shodanDns.status === 'fulfilled' ? shodanDns.value : { source: 'shodan-dns', status: 'error', data: null },
   };
 }
 
-module.exports = { runSecurityAPIChecks, checkVirusTotal, checkShodan, checkSecurityTrails };
+module.exports = { runSecurityAPIChecks, checkVirusTotal, checkShodan, checkShodanDNS };
