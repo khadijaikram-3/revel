@@ -16,11 +16,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { persistSession: false },
 });
 
-/**
- * Create a new scan row.
- * @param {{ target_url: string, status?: string }} data
- * @returns {Promise<object>} the created scan row
- */
 async function createScan(data) {
   const { data: scan, error } = await supabase
     .from('scans')
@@ -35,11 +30,6 @@ async function createScan(data) {
   return scan;
 }
 
-/**
- * Get a scan row by ID.
- * @param {string} scanId
- * @returns {Promise<object|null>}
- */
 async function getScan(scanId) {
   const { data: scan, error } = await supabase
     .from('scans')
@@ -51,12 +41,6 @@ async function getScan(scanId) {
   return scan;
 }
 
-/**
- * Update a scan row by ID.
- * @param {string} scanId
- * @param {object} updates
- * @returns {Promise<object|null>}
- */
 async function updateScan(scanId, updates) {
   const { data: scan, error } = await supabase
     .from('scans')

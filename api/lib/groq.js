@@ -8,19 +8,14 @@ const axios = require('axios');
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'gpt-oss-120b';
 
-/**
- * Call the Groq API with a system + user prompt.
- * Returns the raw text content of the model's response.
- * @param {string} systemPrompt
- * @param {string} userPrompt
- * @returns {Promise<string>} model response text
- */
 async function callGroq(systemPrompt, userPrompt) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
+    console.log('[groq] No API key — skipping Groq call');
     throw new Error('GROQ_API_KEY is not configured');
   }
 
+  console.log('[groq] Calling Groq API — model:', GROQ_MODEL, '— key:', `${apiKey.substring(0, 8)}...`);
   const response = await axios.post(
     GROQ_ENDPOINT,
     {
@@ -41,14 +36,12 @@ async function callGroq(systemPrompt, userPrompt) {
     }
   );
 
-  return response.data?.choices?.[0]?.message?.content || '';
+  console.log('[groq] Response status:', response.status);
+  const content = response.data?.choices?.[0]?.message?.content || '';
+  console.log('[groq] Response length:', content.length, 'chars');
+  return content;
 }
 
-/**
- * Generate an Executive Report from scan data using Groq AI.
- * @param {object} scanData — { targetUrl, vulnerabilities, riskScore, riskLevel, summary }
- * @returns {Promise<object>} parsed executive report
- */
 async function generateExecutiveReport(scanData) {
   const systemPrompt =
     'You are a cybersecurity analyst. Generate an Executive Report from the following scan data. ' +
@@ -61,19 +54,17 @@ async function generateExecutiveReport(scanData) {
   const userPrompt = `Scan Data:\n${JSON.stringify(scanData, null, 2)}`;
 
   try {
+    console.log('[groq] Generating executive report...');
     const text = await callGroq(systemPrompt, userPrompt);
     const parsed = JSON.parse(text);
+    console.log('[groq] Executive report parsed OK — riskScore:', parsed.riskScore);
     return { source: 'groq', ...parsed };
   } catch (error) {
+    console.error('[groq] Executive report generation failed:', error.message);
     return generateMockExecutiveReport(scanData);
   }
 }
 
-/**
- * Generate a Technical Report from scan data using Groq AI.
- * @param {object} scanData — { targetUrl, vulnerabilities, riskScore, riskLevel, summary }
- * @returns {Promise<object>} parsed technical report
- */
 async function generateTechnicalReport(scanData) {
   const systemPrompt =
     'You are a cybersecurity engineer. Generate a Technical Report from the following scan data. ' +
@@ -86,24 +77,24 @@ async function generateTechnicalReport(scanData) {
   const userPrompt = `Scan Data:\n${JSON.stringify(scanData, null, 2)}`;
 
   try {
+    console.log('[groq] Generating technical report...');
     const text = await callGroq(systemPrompt, userPrompt);
     const parsed = JSON.parse(text);
+    console.log('[groq] Technical report parsed OK — riskScore:', parsed.riskScore, '— vulns:', parsed.vulnerabilities?.length || 0);
     return { source: 'groq', ...parsed };
   } catch (error) {
+    console.error('[groq] Technical report generation failed:', error.message);
     return generateMockTechnicalReport(scanData);
   }
 }
 
-/**
- * Generate both reports in parallel.
- * @param {object} scanData
- * @returns {Promise<{ executive: object, technical: object }>}
- */
 async function generateReports(scanData) {
+  console.log('[groq] Generating both reports in parallel...');
   const [executive, technical] = await Promise.all([
     generateExecutiveReport(scanData),
     generateTechnicalReport(scanData),
   ]);
+  console.log('[groq] Both reports generated — exec source:', executive.source, '— tech source:', technical.source);
   return { executive, technical };
 }
 
@@ -143,10 +134,7 @@ function generateMockTechnicalReport(scanData) {
     executiveSummary: `An external security assessment of ${scanData.targetUrl} identified ${scanData.vulnerabilities?.length || 0} vulnerabilities across multiple severity levels. The most critical finding is a SQL injection in the login endpoint (CVSS 9.8) enabling authentication bypass and data exfiltration. Immediate remediation is required.`,
     vulnerabilities: scanData.vulnerabilities || [],
     summaryTable: (scanData.vulnerabilities || []).map((v) => ({
-      severity: v.severity,
-      vulnerability: v.title,
-      cvss: v.cvss,
-      status: 'Open',
+      severity: v.severity, vulnerability: v.title, cvss: v.cvss, status: 'Open',
     })),
   };
 }
