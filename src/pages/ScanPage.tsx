@@ -3,32 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Globe, ScanLine } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { startScan } from '../services/scanService';
-import { useScan } from '../context/ScanContext';
 
 export default function ScanPage() {
   const [url, setUrl] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { setScanData, setLastScanId } = useScan();
 
-  const handleStartScan = async () => {
+  const handleStartScan = () => {
     if (!url.trim()) return;
-
-    setError(null);
-    setLoading(true);
-
-    try {
-      const result = await startScan(url.trim());
-      setLastScanId(result.scanId);
-      setScanData(null);
-      navigate('/loading');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start scan');
-    } finally {
-      setLoading(false);
-    }
+    navigate('/loading');
   };
 
   return (
@@ -86,19 +68,13 @@ export default function ScanPage() {
               </div>
               <button
                 onClick={handleStartScan}
-                disabled={!url.trim() || loading}
+                disabled={!url.trim()}
                 className="btn-primary px-8 py-4 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ScanLine className="w-5 h-5" />
-                <span>{loading ? 'Starting...' : 'Start Scan'}</span>
+                <span>Start Scan</span>
               </button>
             </div>
-
-            {error && (
-              <div className="mt-4 glass-card-danger p-4 text-center">
-                <p className="text-danger text-sm">{error}</p>
-              </div>
-            )}
           </div>
         </div>
       </main>
