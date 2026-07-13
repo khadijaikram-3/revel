@@ -5,9 +5,6 @@
  * @apiSuccess {object} executiveReport
  * @apiSuccess {object} technicalReport
  */
-import { getScan, updateScan } from './lib/supabaseServer.js';
-import { generateReports } from './lib/groq.js';
-
 export default async function handler(req, res) {
   console.log('\n========== /api/report START ==========');
 
@@ -29,6 +26,9 @@ export default async function handler(req, res) {
     // Log Groq API key status
     const groqKey = process.env.GROQ_API_KEY;
     console.log('[report] GROQ_API_KEY:', groqKey ? `${groqKey.substring(0, 8)}...` : 'NOT SET');
+
+    const { getScan, updateScan } = await import('./lib/supabaseServer.js');
+    const { generateReports } = await import('./lib/groq.js');
 
     // 1. Fetch scan from Supabase
     console.log('[report] Fetching scan from Supabase...');

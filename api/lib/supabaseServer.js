@@ -1,53 +1,22 @@
 /**
- * Supabase server client for API routes.
- * Falls back to in-memory storage when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
- * are not configured, so the scan flow always works (mock mode).
+ * Server-side Supabase client for API routes.
+ * Uses the service role key to bypass RLS for server-side operations.
  */
 
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = import.meta.env?.SUPABASE_URL
-  || (typeof process !== 'undefined' && process.env?.SUPABASE_URL)
-  || (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL);
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseServiceKey = typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_ROLE_KEY;
-
-const useMock = !supabaseUrl || !supabaseServiceKey;
-
-if (useMock) {
-  console.warn('[supabaseServer] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — using in-memory mock store');
-} else {
-  console.log('[supabaseServer] Using Supabase at:', supabaseUrl);
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.warn('[supabaseServer] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
 }
 
-const supabase = useMock ? null : createClient(supabaseUrl, supabaseServiceKey, {
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { persistSession: false },
 });
 
-// In-memory fallback store
-const memoryStore = new Map();
-
-export async function createScan(data) {
-  if (useMock) {
-    const id = crypto.randomUUID?.() || `mock-${Date.now()}`;
-    const scan = {
-      id,
-      target_url: data.target_url,
-      status: data.status || 'pending',
-      risk_score: null,
-      risk_level: null,
-      vulnerabilities: null,
-      executive_report: null,
-      technical_report: null,
-      duration: null,
-      created_at: new Date().toISOString(),
-      completed_at: null,
-    };
-    memoryStore.set(id, scan);
-    console.log('[supabaseServer] [mock] createScan:', id);
-    return scan;
-  }
-
+async function createScan(data) {
   const { data: scan, error } = await supabase
     .from('scans')
     .insert({
@@ -61,13 +30,7 @@ export async function createScan(data) {
   return scan;
 }
 
-export async function getScan(scanId) {
-  if (useMock) {
-    const scan = memoryStore.get(scanId) || null;
-    console.log('[supabaseServer] [mock] getScan:', scanId, '— found:', !!scan);
-    return scan;
-  }
-
+async function getScan(scanId) {
   const { data: scan, error } = await supabase
     .from('scans')
     .select('*')
@@ -78,16 +41,7 @@ export async function getScan(scanId) {
   return scan;
 }
 
-export async function updateScan(scanId, updates) {
-  if (useMock) {
-    const scan = memoryStore.get(scanId);
-    if (!scan) throw new Error(`Scan ${scanId} not found in memory store`);
-    const updated = { ...scan, ...updates };
-    memoryStore.set(scanId, updated);
-    console.log('[supabaseServer] [mock] updateScan:', scanId, '— status:', updates.status);
-    return updated;
-  }
-
+async function updateScan(scanId, updates) {
   const { data: scan, error } = await supabase
     .from('scans')
     .update(updates)
@@ -98,3 +52,5 @@ export async function updateScan(scanId, updates) {
   if (error) throw error;
   return scan;
 }
+
+module.exports = { createScan, getScan, updateScan };

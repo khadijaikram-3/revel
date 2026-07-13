@@ -1,9 +1,9 @@
 /**
  * Groq AI integration for generating Executive and Technical reports.
- * Falls back to mock reports when GROQ_API_KEY is not set or the API fails.
+ * Uses the gpt-oss-120b model via the Groq API.
  */
 
-import axios from 'axios';
+const axios = require('axios');
 
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'gpt-oss-120b';
@@ -11,7 +11,7 @@ const GROQ_MODEL = 'gpt-oss-120b';
 async function callGroq(systemPrompt, userPrompt) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    console.log('[groq] No API key — using mock report');
+    console.log('[groq] No API key — skipping Groq call');
     throw new Error('GROQ_API_KEY is not configured');
   }
 
@@ -114,7 +114,7 @@ function generateMockExecutiveReport(scanData) {
       { number: '01', title: 'Close database port 3306', description: 'Contact your hosting provider to block external access.', severity: 'Critical' },
       { number: '02', title: 'Enable HTTPS', description: 'Install an SSL certificate to encrypt user data.', severity: 'Critical' },
       { number: '03', title: 'Add authentication to admin panel', description: 'Require strong passwords and multi-factor authentication.', severity: 'High' },
-      { number: '04', title: 'Update security headers', description: 'Configure CSP, HSTS, and X-Frame-Options on your web server.', severity: 'Medium' },
+      { number: '04', title: 'Update security headers', description: 'Add CSP, HSTS, and X-Frame-Options.', severity: 'Medium' },
       { number: '05', title: 'Update outdated frameworks', description: 'Run a security update on all dependencies.', severity: 'Medium' },
     ],
     vulnerabilityCounts: {
@@ -139,4 +139,4 @@ function generateMockTechnicalReport(scanData) {
   };
 }
 
-export { generateReports, generateExecutiveReport, generateTechnicalReport };
+module.exports = { generateReports, generateExecutiveReport, generateTechnicalReport };

@@ -1,6 +1,6 @@
 /**
- * Mock security scan data — fallback when external APIs are unavailable.
- * Ensures the app always returns results.
+ * Mock security scan data — used as fallback when external APIs are
+ * unavailable or rate-limited. Ensures the app always returns results.
  */
 
 const mockVulnerabilities = [
@@ -92,4 +92,4 @@ function generateMockScanData(targetUrl) {
   };
 }
 
-export { generateMockScanData, mockVulnerabilities };
+module.exports = { generateMockScanData, mockVulnerabilities };
