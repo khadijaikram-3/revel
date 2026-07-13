@@ -2,6 +2,8 @@
  * @api {get} /api/scan-status Get scan status by ID
  * @apiQuery {string} scanId UUID of the scan
  */
+import { getScan } from './lib/supabaseServer.js';
+
 export default async function handler(req, res) {
   console.log('\n========== /api/scan-status START ==========');
 
@@ -19,7 +21,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'scanId query parameter is required' });
     }
 
-    const { getScan } = await import('./lib/supabaseServer.js');
     const scan = await getScan(scanId);
     console.log('[scan-status] Scan found:', !!scan, '— status:', scan?.status);
 

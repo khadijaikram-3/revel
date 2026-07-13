@@ -10,6 +10,8 @@ import type { ScanData, ExecutiveReport, TechnicalReport } from '../types/scan';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
+console.log('[scanService] API_BASE:', API_BASE);
+
 /**
  * Start a new security scan.
  * @param targetUrl — the URL to scan
@@ -20,18 +22,25 @@ export async function startScan(targetUrl: string): Promise<{
   status: string;
   targetUrl: string;
 }> {
+  console.log('[scanService] startScan — url:', targetUrl, '— endpoint:', `${API_BASE}/scan`);
+
   const response = await fetch(`${API_BASE}/scan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url: targetUrl }),
   });
 
+  console.log('[scanService] startScan — response status:', response.status);
+
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
+    console.error('[scanService] startScan failed:', err);
     throw new Error(err.error || `Failed to start scan (${response.status})`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('[scanService] startScan — scanId:', data.scanId, '— status:', data.status);
+  return data;
 }
 
 /**
@@ -40,14 +49,20 @@ export async function startScan(targetUrl: string): Promise<{
  * @returns scan data including status, results, and reports
  */
 export async function getScanStatus(scanId: string): Promise<ScanData> {
-  const response = await fetch(`${API_BASE}/scan-status?scanId=${encodeURIComponent(scanId)}`);
+  const endpoint = `${API_BASE}/scan-status?scanId=${encodeURIComponent(scanId)}`;
+  console.log('[scanService] getScanStatus — endpoint:', endpoint);
+
+  const response = await fetch(endpoint);
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
+    console.error('[scanService] getScanStatus failed:', response.status, err);
     throw new Error(err.error || `Failed to fetch scan status (${response.status})`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('[scanService] getScanStatus — status:', data.status, '— riskScore:', data.riskScore);
+  return data;
 }
 
 /**
@@ -59,18 +74,25 @@ export async function generateReports(scanId: string): Promise<{
   executiveReport: ExecutiveReport;
   technicalReport: TechnicalReport;
 }> {
+  console.log('[scanService] generateReports — scanId:', scanId);
+
   const response = await fetch(`${API_BASE}/report`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ scanId }),
   });
 
+  console.log('[scanService] generateReports — response status:', response.status);
+
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
+    console.error('[scanService] generateReports failed:', err);
     throw new Error(err.error || `Failed to generate report (${response.status})`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('[scanService] generateReports — exec source:', data.executiveReport?.source, '— tech source:', data.technicalReport?.source);
+  return data;
 }
 
 /**
@@ -89,10 +111,16 @@ export async function pollScanStatus(
   timeoutMs = 120000
 ): Promise<ScanData> {
   const startTime = Date.now();
+  let pollCount = 0;
 
   return new Promise((resolve, reject) => {
     const poll = async () => {
+      pollCount++;
+      const elapsed = Date.now() - startTime;
+      console.log(`[scanService] poll #${pollCount} — elapsed: ${elapsed}ms`);
+
       if (Date.now() - startTime > timeoutMs) {
+        console.error('[scanService] Poll timed out after', timeoutMs, 'ms');
         reject(new Error('Scan timed out'));
         return;
       }
@@ -102,17 +130,26 @@ export async function pollScanStatus(
         onUpdate(data);
 
         if (data.status === 'complete') {
+          console.log('[scanService] Poll resolved — status: complete');
           resolve(data);
           return;
         }
 
         if (data.status === 'failed') {
+          console.error('[scanService] Poll rejected — status: failed');
           reject(new Error('Scan failed'));
+          return;
+        }
+
+        if (data.status === 'analyzing') {
+          console.log('[scanService] Poll resolved — status: analyzing (ready for reports)');
+          resolve(data);
           return;
         }
 
         setTimeout(poll, intervalMs);
       } catch (error) {
+        console.error('[scanService] Poll error:', error);
         reject(error);
       }
     };
@@ -129,23 +166,24 @@ export async function pollScanStatus(
  */
 export async function runFullScan(
   targetUrl: string,
-  onProgress?: (status: string) => void
+  externalProgress?: (status: string) => void
 ): Promise<ScanData> {
-  onProgress?.('pending');
+  console.log('[scanService] runFullScan — url:', targetUrl);
+  externalProgress?.('pending');
   const { scanId } = await startScan(targetUrl);
 
-  onProgress?.('scanning');
+  externalProgress?.('scanning');
   const scanData = await pollScanStatus(scanId, (data) => {
-    onProgress?.(data.status);
+    externalProgress?.(data.status);
   });
 
   if (scanData.status === 'analyzing' && !scanData.executiveReport) {
-    onProgress?.('analyzing');
+    externalProgress?.('analyzing');
     const { executiveReport, technicalReport } = await generateReports(scanId);
     scanData.executiveReport = executiveReport;
     scanData.technicalReport = technicalReport;
   }
 
-  onProgress?.('complete');
+  externalProgress?.('complete');
   return scanData;
 }
