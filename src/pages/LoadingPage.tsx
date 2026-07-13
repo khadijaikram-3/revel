@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { pollScanStatus, generateReports } from '../services/scanService';
+import { useScan } from '../context/ScanContext';
 
 const scanStages = [
   'Initializing Scan Engine...',
@@ -13,46 +15,99 @@ const scanStages = [
   'Assessment Complete',
 ];
 
+const stageStatusMap: Record<string, number> = {
+  pending: 0,
+  scanning: 5,
+  analyzing: 7,
+  complete: 9,
+  failed: 0,
+};
+
 export default function LoadingPage() {
   const [currentStage, setCurrentStage] = useState(0);
   const [displayedStages, setDisplayedStages] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(45);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { lastScanId, setScanData } = useScan();
+  const hasStarted = useRef(false);
 
   useEffect(() => {
-    const stageInterval = setInterval(() => {
-      if (currentStage < scanStages.length) {
-        const stageText = scanStages[currentStage];
-        setDisplayedStages((prev) => [...prev, stageText]);
-        setProgress(((currentStage + 1) / scanStages.length) * 100);
+    if (hasStarted.current) return;
+    hasStarted.current = true;
 
-        if (currentStage === scanStages.length - 1) {
-          setTimeout(() => {
-            navigate('/reports');
-          }, 1500);
-        } else {
-          setCurrentStage((prev) => prev + 1);
+    if (!lastScanId) {
+      setError('No scan in progress. Redirecting...');
+      setTimeout(() => navigate('/scan'), 2000);
+      return;
+    }
+
+    (async () => {
+      try {
+        const finalData = await pollScanStatus(
+          lastScanId,
+          (data) => {
+            const stageIdx = stageStatusMap[data.status] ?? 0;
+            setCurrentStage(stageIdx);
+          },
+          2000,
+          120000
+        );
+
+        if (finalData.status === 'analyzing' && !finalData.executiveReport) {
+          const { executiveReport, technicalReport } = await generateReports(lastScanId);
+          finalData.executiveReport = executiveReport;
+          finalData.technicalReport = technicalReport;
         }
-      }
-    }, 2500);
 
-    return () => clearInterval(stageInterval);
-  }, [currentStage, navigate]);
+        setScanData(finalData);
+
+        for (let i = displayedStagesRef.current.length; i < scanStages.length; i++) {
+          setDisplayedStages((prev) => [...prev, scanStages[i]]);
+          setProgress(((i + 1) / scanStages.length) * 100);
+          await new Promise((r) => setTimeout(r, 200));
+        }
+
+        setTimeout(() => navigate('/reports'), 1000);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Scan failed');
+        setTimeout(() => navigate('/scan'), 3000);
+      }
+    })();
+  }, [lastScanId, navigate, setScanData]);
+
+  const displayedStagesRef = useRef<string[]>([]);
+  useEffect(() => {
+    displayedStagesRef.current = displayedStages;
+  }, [displayedStages]);
+
+  useEffect(() => {
+    if (currentStage <= 0) return;
+
+    const stageCount = Math.min(currentStage, scanStages.length);
+    const newStages = scanStages.slice(0, stageCount);
+    setDisplayedStages(newStages);
+    setProgress((stageCount / scanStages.length) * 100);
+  }, [currentStage]);
 
   useEffect(() => {
     if (timeRemaining <= 0) return;
-
     const timer = setInterval(() => {
       setTimeRemaining((prev) => Math.max(0, prev - 1));
     }, 1000);
-
     return () => clearInterval(timer);
   }, [timeRemaining]);
 
   return (
     <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
       <div className="max-w-2xl w-full mx-4">
+        {error && (
+          <div className="glass-card-danger p-6 mb-6 text-center">
+            <p className="text-danger font-medium">{error}</p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
@@ -109,7 +164,7 @@ export default function LoadingPage() {
                 </span>
               </div>
             ))}
-            {currentStage < scanStages.length && (
+            {currentStage < scanStages.length && !error && (
               <div className="flex items-center">
                 <span className="text-terminal-green/60 mr-2">&gt;</span>
                 <div className="w-2 h-5 bg-terminal-green animate-blink" />
