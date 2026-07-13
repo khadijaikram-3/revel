@@ -3,7 +3,7 @@
  * Each function tries the real API and falls back to mock data on failure.
  */
 
-import axios from 'axios';
+const axios = require('axios');
 
 async function checkVirusTotal(targetUrl) {
   const apiKey = process.env.VIRUSTOTAL_API_KEY;
@@ -115,4 +115,4 @@ async function runSecurityAPIChecks(targetUrl) {
   };
 }
 
-export { runSecurityAPIChecks, checkVirusTotal, checkShodan, checkShodanDNS };
+module.exports = { runSecurityAPIChecks, checkVirusTotal, checkShodan, checkShodanDNS };
