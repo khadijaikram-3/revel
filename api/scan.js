@@ -4,6 +4,10 @@
  * @apiSuccess {string} scanId UUID of the created scan
  * @apiSuccess {string} status "pending"
  */
+import { createScan, updateScan } from './lib/scanStore.js';
+import { runSecurityAPIChecks } from './lib/securityApis.js';
+import { generateMockScanData } from './lib/mockData.js';
+
 export default async function handler(req, res) {
   console.log('\n========== /api/scan START ==========');
 
@@ -35,38 +39,27 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'URL must use http or https protocol' });
     }
 
-    // Log API key presence (first 8 chars only, never the full key)
     const groqKey = process.env.GROQ_API_KEY;
     const vtKey = process.env.VIRUSTOTAL_API_KEY;
     const shodanKey = process.env.SHODAN_API_KEY;
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     console.log('[scan] GROQ_API_KEY:', groqKey ? `${groqKey.substring(0, 8)}...` : 'NOT SET');
     console.log('[scan] VIRUSTOTAL_API_KEY:', vtKey ? `${vtKey.substring(0, 8)}...` : 'NOT SET');
     console.log('[scan] SHODAN_API_KEY:', shodanKey ? `${shodanKey.substring(0, 8)}...` : 'NOT SET');
-    console.log('[scan] SUPABASE_URL:', supabaseUrl ? supabaseUrl : 'NOT SET');
-    console.log('[scan] SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? `${supabaseServiceKey.substring(0, 8)}...` : 'NOT SET');
 
-    const { createScan } = await import('./lib/supabaseServer.js');
-    const { runSecurityAPIChecks } = await import('./lib/securityApis.js');
-    const { generateMockScanData } = await import('./lib/mockData.js');
-
-    // 1. Create scan row in Supabase
-    console.log('[scan] Creating scan row in Supabase...');
+    console.log('[scan] Creating scan record...');
     let scan;
     try {
       scan = await createScan({
         target_url: targetUrl,
         status: 'scanning',
       });
-      console.log('[scan] Supabase scan row created — scanId:', scan.id);
+      console.log('[scan] Scan record created — scanId:', scan.id);
     } catch (dbErr) {
-      console.error('[scan] ERROR creating Supabase row:', dbErr.message);
-      throw new Error(`Database error: ${dbErr.message}`);
+      console.error('[scan] ERROR creating scan record:', dbErr.message);
+      throw new Error(`Failed to create scan: ${dbErr.message}`);
     }
 
-    // 2. Kick off security API checks asynchronously
     console.log('[scan] Starting async security API checks...');
     runSecurityAPIChecks(targetUrl)
       .then(async (apiResults) => {
@@ -82,7 +75,6 @@ export default async function handler(req, res) {
           apiResults,
         };
 
-        const { updateScan } = await import('./lib/supabaseServer.js');
         try {
           await updateScan(scan.id, {
             status: 'analyzing',
@@ -91,20 +83,19 @@ export default async function handler(req, res) {
             vulnerabilities: scanData.vulnerabilities,
             duration: '2m 34s',
           });
-          console.log('[scan] Supabase scan row updated to "analyzing" — scanId:', scan.id);
+          console.log('[scan] Scan record updated to "analyzing" — scanId:', scan.id);
         } catch (updateErr) {
-          console.error('[scan] ERROR updating Supabase row to analyzing:', updateErr.message);
+          console.error('[scan] ERROR updating scan to analyzing:', updateErr.message);
         }
       })
       .catch(async (err) => {
         console.error('[scan] ERROR in async security checks:', err.message);
-        const { updateScan } = await import('./lib/supabaseServer.js');
         try {
           await updateScan(scan.id, {
             status: 'failed',
             duration: '0m 00s',
           });
-          console.log('[scan] Scan marked as failed in Supabase');
+          console.log('[scan] Scan marked as failed');
         } catch (updateErr) {
           console.error('[scan] ERROR marking scan as failed:', updateErr.message);
         }
