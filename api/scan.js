@@ -39,28 +39,31 @@ export default async function handler(req, res) {
     const groqKey = process.env.GROQ_API_KEY;
     const vtKey = process.env.VIRUSTOTAL_API_KEY;
     const shodanKey = process.env.SHODAN_API_KEY;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     console.log('[scan] GROQ_API_KEY:', groqKey ? `${groqKey.substring(0, 8)}...` : 'NOT SET');
     console.log('[scan] VIRUSTOTAL_API_KEY:', vtKey ? `${vtKey.substring(0, 8)}...` : 'NOT SET');
     console.log('[scan] SHODAN_API_KEY:', shodanKey ? `${shodanKey.substring(0, 8)}...` : 'NOT SET');
+    console.log('[scan] SUPABASE_URL:', supabaseUrl ? supabaseUrl : 'NOT SET');
+    console.log('[scan] SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? `${supabaseServiceKey.substring(0, 8)}...` : 'NOT SET');
 
-    // ✅ FIXED: Using scanStore.js instead of supabaseServer.js
-    const { createScan } = await import('./lib/scanStore.js');
+    const { createScan } = await import('./lib/supabaseServer.js');
     const { runSecurityAPIChecks } = await import('./lib/securityApis.js');
     const { generateMockScanData } = await import('./lib/mockData.js');
 
-    // 1. Create scan row in memory store
-    console.log('[scan] Creating scan in memory store...');
+    // 1. Create scan row in Supabase
+    console.log('[scan] Creating scan row in Supabase...');
     let scan;
     try {
-      scan = createScan({
+      scan = await createScan({
         target_url: targetUrl,
         status: 'scanning',
       });
-      console.log('[scan] Scan created — scanId:', scan.id);
+      console.log('[scan] Supabase scan row created — scanId:', scan.id);
     } catch (dbErr) {
-      console.error('[scan] ERROR creating scan:', dbErr.message);
-      throw new Error(`Store error: ${dbErr.message}`);
+      console.error('[scan] ERROR creating Supabase row:', dbErr.message);
+      throw new Error(`Database error: ${dbErr.message}`);
     }
 
     // 2. Kick off security API checks asynchronously
@@ -79,31 +82,29 @@ export default async function handler(req, res) {
           apiResults,
         };
 
-        // ✅ FIXED: Using scanStore.js instead of supabaseServer.js
-        const { updateScan } = await import('./lib/scanStore.js');
+        const { updateScan } = await import('./lib/supabaseServer.js');
         try {
-          updateScan(scan.id, {
+          await updateScan(scan.id, {
             status: 'analyzing',
             risk_score: scanData.riskScore,
             risk_level: scanData.riskLevel,
             vulnerabilities: scanData.vulnerabilities,
             duration: '2m 34s',
           });
-          console.log('[scan] Scan updated to "analyzing" — scanId:', scan.id);
+          console.log('[scan] Supabase scan row updated to "analyzing" — scanId:', scan.id);
         } catch (updateErr) {
-          console.error('[scan] ERROR updating scan to analyzing:', updateErr.message);
+          console.error('[scan] ERROR updating Supabase row to analyzing:', updateErr.message);
         }
       })
       .catch(async (err) => {
         console.error('[scan] ERROR in async security checks:', err.message);
-        // ✅ FIXED: Using scanStore.js instead of supabaseServer.js
-        const { updateScan } = await import('./lib/scanStore.js');
+        const { updateScan } = await import('./lib/supabaseServer.js');
         try {
-          updateScan(scan.id, {
+          await updateScan(scan.id, {
             status: 'failed',
             duration: '0m 00s',
           });
-          console.log('[scan] Scan marked as failed');
+          console.log('[scan] Scan marked as failed in Supabase');
         } catch (updateErr) {
           console.error('[scan] ERROR marking scan as failed:', updateErr.message);
         }

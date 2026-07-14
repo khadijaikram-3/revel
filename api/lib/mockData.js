@@ -71,7 +71,7 @@ const mockVulnerabilities = [
   },
 ];
 
-export function generateMockScanData(targetUrl) {
+function generateMockScanData(targetUrl) {
   const hostname = targetUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   const vulnerabilities = mockVulnerabilities.map((v) => ({
     ...v,
@@ -92,4 +92,4 @@ export function generateMockScanData(targetUrl) {
   };
 }
 
-export { mockVulnerabilities };
+module.exports = { generateMockScanData, mockVulnerabilities };

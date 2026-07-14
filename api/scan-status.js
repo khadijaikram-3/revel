@@ -19,9 +19,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'scanId query parameter is required' });
     }
 
-    // ✅ FIXED: Using scanStore.js instead of supabaseServer.js
-    const { getScan } = await import('./lib/scanStore.js');
-    const scan = getScan(scanId);
+    const { getScan } = await import('./lib/supabaseServer.js');
+    const scan = await getScan(scanId);
     console.log('[scan-status] Scan found:', !!scan, '— status:', scan?.status);
 
     if (!scan) {
