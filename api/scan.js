@@ -35,17 +35,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'URL must use http or https protocol' });
     }
 
-    // Log API key presence (first 8 chars only, never the full key)
-    const groqKey = process.env.GROQ_API_KEY;
+    // ✅ FIXED: Only log keys we actually use
+    const openRouterKey = process.env.OPENROUTER_API_KEY;
     const vtKey = process.env.VIRUSTOTAL_API_KEY;
     const shodanKey = process.env.SHODAN_API_KEY;
 
-    console.log('[scan] GROQ_API_KEY:', groqKey ? `${groqKey.substring(0, 8)}...` : 'NOT SET');
+    console.log('[scan] OPENROUTER_API_KEY:', openRouterKey ? `${openRouterKey.substring(0, 8)}...` : 'NOT SET');
     console.log('[scan] VIRUSTOTAL_API_KEY:', vtKey ? `${vtKey.substring(0, 8)}...` : 'NOT SET');
     console.log('[scan] SHODAN_API_KEY:', shodanKey ? `${shodanKey.substring(0, 8)}...` : 'NOT SET');
 
-    // ✅ FIXED: Import updateScan as well
-    const { createScan, updateScan } = await import('./lib/scanStore.js');
+    // ✅ FIXED: Import everything we need
+    const { createScan, updateScan, getScan } = await import('./lib/scanStore.js');
     const { runSecurityAPIChecks } = await import('./lib/securityApis.js');
     const { generateMockScanData } = await import('./lib/mockData.js');
 
@@ -64,7 +64,6 @@ export default async function handler(req, res) {
     }
 
     // ✅ FIX: Force status update to "analyzing" immediately
-    // This ensures the frontend doesn't timeout while waiting
     try {
       await updateScan(scan.id, {
         status: 'analyzing',
@@ -79,7 +78,7 @@ export default async function handler(req, res) {
     // ✅ FIX: Auto-complete after 45 seconds if still stuck
     const autoCompleteTimeout = setTimeout(async () => {
       try {
-        const currentScan = await import('./lib/scanStore.js').then(m => m.getScan(scan.id));
+        const currentScan = await getScan(scan.id);
         if (currentScan && currentScan.status !== 'complete' && currentScan.status !== 'failed') {
           console.log('[scan] Auto-completing scan after 45s timeout');
           const mockData = generateMockScanData(targetUrl);
@@ -131,18 +130,16 @@ export default async function handler(req, res) {
       } catch (err) {
         console.error('[scan] Auto-complete error:', err.message);
       }
-    }, 45000); // 45 seconds
+    }, 45000);
 
-    // 2. Kick off security API checks asynchronously (don't await)
+    // 2. Kick off security API checks asynchronously
     console.log('[scan] Starting async security API checks...');
     runSecurityAPIChecks(targetUrl)
       .then(async (apiResults) => {
         console.log('[scan] Security API results:');
         console.log('  - VirusTotal:', JSON.stringify(apiResults.virustotal?.status), apiResults.virustotal?.error || '');
         console.log('  - Shodan:', JSON.stringify(apiResults.shodan?.status), apiResults.shodan?.error || '');
-        console.log('  - Shodan DNS:', JSON.stringify(apiResults.shodanDns?.status), apiResults.shodanDns?.error || '');
 
-        // Clear the auto-complete timeout since the scan completed naturally
         clearTimeout(autoCompleteTimeout);
 
         const mockData = generateMockScanData(targetUrl);
@@ -204,7 +201,6 @@ export default async function handler(req, res) {
       })
       .catch(async (err) => {
         console.error('[scan] ERROR in async security checks:', err.message);
-        // Clear the auto-complete timeout since we have an error
         clearTimeout(autoCompleteTimeout);
         try {
           await updateScan(scan.id, {
