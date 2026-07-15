@@ -6,7 +6,7 @@
 import axios from 'axios';
 
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'mixtral-8x7b-32768'; // ✅ Fixed: working model
+const GROQ_MODEL = 'llama-3.1-8b-instant'; // ✅ Fixed: working model
 
 async function callGroq(systemPrompt, userPrompt) {
   const apiKey = process.env.GROQ_API_KEY;
