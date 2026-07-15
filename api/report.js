@@ -27,19 +27,18 @@ export default async function handler(req, res) {
     const groqKey = process.env.GROQ_API_KEY;
     console.log('[report] GROQ_API_KEY:', groqKey ? `${groqKey.substring(0, 8)}...` : 'NOT SET');
 
-    // ✅ FIXED: Using scanStore.js instead of supabaseServer.js
-    const { getScan, updateScan } = await import('./lib/scanStore.js');
+    const { getScan, updateScan } = await import('./lib/supabaseServer.js');
     const { generateReports } = await import('./lib/groq.js');
 
-    // 1. Fetch scan from memory store
-    console.log('[report] Fetching scan from memory store...');
+    // 1. Fetch scan from Supabase
+    console.log('[report] Fetching scan from Supabase...');
     let scan;
     try {
-      scan = getScan(scanId);
-      console.log('[report] Scan fetched — status:', scan?.status, '— vulnerabilities:', scan?.vulnerabilities?.length || 0);
+      scan = await getScan(scanId);
+      console.log('[report] Supabase scan fetched — status:', scan?.status, '— vulnerabilities:', scan?.vulnerabilities?.length || 0);
     } catch (dbErr) {
-      console.error('[report] ERROR fetching scan:', dbErr.message);
-      throw new Error(`Store error: ${dbErr.message}`);
+      console.error('[report] ERROR fetching scan from Supabase:', dbErr.message);
+      throw new Error(`Database error: ${dbErr.message}`);
     }
 
     if (!scan) {
@@ -81,19 +80,19 @@ export default async function handler(req, res) {
       throw new Error(`Groq API error: ${groqErr.message}`);
     }
 
-    // 4. Save reports to memory store
-    console.log('[report] Saving reports to memory store...');
+    // 4. Save reports to Supabase
+    console.log('[report] Saving reports to Supabase...');
     try {
-      updateScan(scan.id, {
+      await updateScan(scan.id, {
         status: 'complete',
         executive_report: executive,
         technical_report: technical,
         completed_at: new Date().toISOString(),
       });
-      console.log('[report] Reports saved — scanId:', scan.id);
+      console.log('[report] Reports saved to Supabase — scanId:', scan.id);
     } catch (updateErr) {
-      console.error('[report] ERROR saving reports:', updateErr.message);
-      // Continue — we still return the reports to the client even if save fails
+      console.error('[report] ERROR saving reports to Supabase:', updateErr.message);
+      // Continue — we still return the reports to the client even if DB save fails
     }
 
     console.log('[report] Returning reports to client');

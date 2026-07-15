@@ -1,10 +1,12 @@
 /**
  * Groq AI integration for generating Executive and Technical reports.
- * Uses the openai/gpt-oss-120b model via the Groq API.
+ * Uses the gpt-oss-120b model via the Groq API.
  */
 
+const axios = require('axios');
+
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'openai/gpt-oss-120b';
+const GROQ_MODEL = 'gpt-oss-120b';
 
 async function callGroq(systemPrompt, userPrompt) {
   const apiKey = process.env.GROQ_API_KEY;
@@ -14,39 +16,30 @@ async function callGroq(systemPrompt, userPrompt) {
   }
 
   console.log('[groq] Calling Groq API — model:', GROQ_MODEL, '— key:', `${apiKey.substring(0, 8)}...`);
-  
-  try {
-    const response = await fetch(GROQ_ENDPOINT, {
-      method: 'POST',
+  const response = await axios.post(
+    GROQ_ENDPOINT,
+    {
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 4096,
+    },
+    {
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 4096,
-      }),
-    });
-
-    console.log('[groq] Response status:', response.status);
-    
-    if (!response.ok) {
-      throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+      timeout: 30000,
     }
+  );
 
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content || '';
-    console.log('[groq] Response length:', content.length, 'chars');
-    return content;
-  } catch (error) {
-    console.error('[groq] API call failed:', error.message);
-    throw error;
-  }
+  console.log('[groq] Response status:', response.status);
+  const content = response.data?.choices?.[0]?.message?.content || '';
+  console.log('[groq] Response length:', content.length, 'chars');
+  return content;
 }
 
 async function generateExecutiveReport(scanData) {
@@ -95,7 +88,7 @@ async function generateTechnicalReport(scanData) {
   }
 }
 
-export async function generateReports(scanData) {
+async function generateReports(scanData) {
   console.log('[groq] Generating both reports in parallel...');
   const [executive, technical] = await Promise.all([
     generateExecutiveReport(scanData),
@@ -145,3 +138,5 @@ function generateMockTechnicalReport(scanData) {
     })),
   };
 }
+
+module.exports = { generateReports, generateExecutiveReport, generateTechnicalReport };
