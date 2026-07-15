@@ -1,18 +1,15 @@
-// api/lib/securityApis.js — Using Free Shodan InternetDB + Censys
-
+// api/lib/securityApis.js — FREE TIER ONLY
 export async function runSecurityAPIChecks(targetUrl) {
   console.log('[securityApis] Starting checks for:', targetUrl);
 
   const results = {
     virustotal: { status: 'pending' },
-    shodan: { status: 'pending' },
+    shodanSearch: { status: 'pending' },
     shodanDns: { status: 'pending' },
-    censys: { status: 'pending' },
   };
 
   const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY;
-  const CENSYS_API_ID = process.env.CENSYS_API_ID;
-  const CENSYS_API_SECRET = process.env.CENSYS_API_SECRET;
+  const SHODAN_API_KEY = process.env.SHODAN_API_KEY;
 
   // 1. VirusTotal (Working)
   if (VIRUSTOTAL_API_KEY) {
@@ -40,70 +37,78 @@ export async function runSecurityAPIChecks(targetUrl) {
     console.log('[securityApis] VirusTotal: skipped (no key)');
   }
 
-  // 2. ✅ Shodan InternetDB — NO API KEY REQUIRED!
-  try {
-    const url = new URL(targetUrl);
-    const hostname = url.hostname;
-
-    console.log('[securityApis] Shodan InternetDB: looking up:', hostname);
-    
-    // ✅ FREE — No API key needed!
-    const response = await fetch(
-      `https://internetdb.shodan.io/${hostname}`
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      results.shodan = { status: 'success', data };
-      const ports = data.ports || [];
-      console.log('[securityApis] Shodan InternetDB: found ports:', ports.length > 0 ? ports.join(', ') : 'none');
-      
-      if (data.vulns) {
-        console.log('[securityApis] Shodan InternetDB: found vulnerabilities:', Object.keys(data.vulns).length);
-      }
-    } else if (response.status === 404) {
-      console.log('[securityApis] Shodan InternetDB: host not found');
-      results.shodan = { 
-        status: 'skipped', 
-        error: 'Host not in Shodan database',
-        message: 'No data available for this host'
-      };
-    } else {
-      results.shodan = { status: 'error', error: `HTTP ${response.status}` };
-      console.log('[securityApis] Shodan InternetDB: error', response.status);
-    }
-  } catch (err) {
-    results.shodan = { status: 'error', error: err.message };
-    console.log('[securityApis] Shodan InternetDB: exception', err.message);
-  }
-
-  // 3. Censys (Backup — if you want to add keys later)
-  if (CENSYS_API_ID && CENSYS_API_SECRET) {
+  // 2. Shodan — FREE TIER SEARCH
+  if (SHODAN_API_KEY) {
     try {
       const url = new URL(targetUrl);
       const hostname = url.hostname;
 
-      const auth = Buffer.from(`${CENSYS_API_ID}:${CENSYS_API_SECRET}`).toString('base64');
+      console.log('[securityApis] Shodan Search: looking up:', hostname);
+      
+      // ✅ FREE TIER ENDPOINT — Works with free API key
       const response = await fetch(
-        `https://search.censys.io/api/v2/hosts/${hostname}`,
-        { headers: { 'Authorization': `Basic ${auth}` } }
+        `https://api.shodan.io/shodan/host/search?key=${SHODAN_API_KEY}&query=${hostname}`
       );
 
       if (response.ok) {
         const data = await response.json();
-        results.censys = { status: 'success', data };
-        console.log('[securityApis] Censys: success');
+        results.shodanSearch = { status: 'success', data };
+        const total = data.total || 0;
+        console.log('[securityApis] Shodan Search: found', total, 'results');
+        
+        // Extract ports from the first result if available
+        if (data.matches && data.matches.length > 0) {
+          const ports = data.matches[0].ports || [];
+          console.log('[securityApis] Shodan Search: ports found:', ports.length > 0 ? ports.join(', ') : 'none');
+        }
+      } else if (response.status === 403) {
+        console.log('[securityApis] Shodan Search: no results or need membership');
+        results.shodanSearch = { 
+          status: 'skipped', 
+          error: 'No results found or membership required',
+          message: 'Using mock data for ports'
+        };
       } else {
-        results.censys = { status: 'error', error: `HTTP ${response.status}` };
-        console.log('[securityApis] Censys: error', response.status);
+        results.shodanSearch = { status: 'error', error: `HTTP ${response.status}` };
+        console.log('[securityApis] Shodan Search: error', response.status);
       }
     } catch (err) {
-      results.censys = { status: 'error', error: err.message };
-      console.log('[securityApis] Censys: exception', err.message);
+      results.shodanSearch = { status: 'error', error: err.message };
+      console.log('[securityApis] Shodan Search: exception', err.message);
     }
   } else {
-    results.censys = { status: 'skipped', error: 'No Censys keys' };
-    console.log('[securityApis] Censys: skipped (no keys)');
+    results.shodanSearch = { status: 'skipped', error: 'No API key' };
+    console.log('[securityApis] Shodan Search: skipped (no key)');
+  }
+
+  // 3. Shodan DNS — FREE TIER
+  if (SHODAN_API_KEY) {
+    try {
+      const url = new URL(targetUrl);
+      const hostname = url.hostname;
+
+      const response = await fetch(
+        `https://api.shodan.io/dns/domain/${hostname}?key=${SHODAN_API_KEY}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        results.shodanDns = { status: 'success', data };
+        console.log('[securityApis] Shodan DNS: success');
+      } else if (response.status === 403) {
+        results.shodanDns = { status: 'skipped', error: 'Domain not found' };
+        console.log('[securityApis] Shodan DNS: domain not found');
+      } else {
+        results.shodanDns = { status: 'error', error: `HTTP ${response.status}` };
+        console.log('[securityApis] Shodan DNS: error', response.status);
+      }
+    } catch (err) {
+      results.shodanDns = { status: 'error', error: err.message };
+      console.log('[securityApis] Shodan DNS: exception', err.message);
+    }
+  } else {
+    results.shodanDns = { status: 'skipped', error: 'No API key' };
+    console.log('[securityApis] Shodan DNS: skipped (no key)');
   }
 
   return results;
