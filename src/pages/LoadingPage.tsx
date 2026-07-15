@@ -55,7 +55,7 @@ export default function LoadingPage() {
             console.log('[LoadingPage] Status update:', data.status, 'Stage:', stageIdx);
           },
           2000,
-          300000
+           180000
         );
 
         console.log('[LoadingPage] Polling complete. Final status:', finalData.status);
