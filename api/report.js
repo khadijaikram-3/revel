@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     console.log('[report] GROQ_API_KEY:', groqKey ? `${groqKey.substring(0, 8)}...` : 'NOT SET');
 
     const { getScan, updateScan } = await import('./lib/scanStore.js');
-    const { generateReports } = await import('./lib/groq.js');
+    const { generateReports } = await import('./lib/openrouter.js');
 
     // 1. Fetch scan from Supabase
     console.log('[report] Fetching scan from Supabase...');
