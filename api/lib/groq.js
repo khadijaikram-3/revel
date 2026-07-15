@@ -3,7 +3,7 @@
  * Uses the gpt-oss-120b model via the Groq API.
  */
 
-const axios = require('axios');
+import axios from 'axios';
 
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'gpt-oss-120b';
