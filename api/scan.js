@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     console.log('[scan] SUPABASE_URL:', supabaseUrl ? supabaseUrl : 'NOT SET');
     console.log('[scan] SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? `${supabaseServiceKey.substring(0, 8)}...` : 'NOT SET');
 
-    const { createScan } = await import('./lib/supabaseServer.js');
+    const { createScan } = await import('./lib/scanStore.js');
     const { runSecurityAPIChecks } = await import('./lib/securityApis.js');
     const { generateMockScanData } = await import('./lib/mockData.js');
 
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
           apiResults,
         };
 
-        const { updateScan } = await import('./lib/supabaseServer.js');
+        const { updateScan } = await import('./lib/scanStore.js');
         try {
           await updateScan(scan.id, {
             status: 'analyzing',
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
       })
       .catch(async (err) => {
         console.error('[scan] ERROR in async security checks:', err.message);
-        const { updateScan } = await import('./lib/supabaseServer.js');
+        const { updateScan } = await import('./lib/scanStore.js');
         try {
           await updateScan(scan.id, {
             status: 'failed',
