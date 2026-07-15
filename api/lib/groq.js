@@ -1,12 +1,12 @@
 /**
  * Groq AI integration for generating Executive and Technical reports.
- * Uses the gpt-oss-120b model via the Groq API.
+ * Uses the mixtral-8x7b-32768 model via the Groq API.
  */
 
 import axios from 'axios';
 
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'mixtral-8x7b-32768';
+const GROQ_MODEL = 'mixtral-8x7b-32768'; // ✅ Fixed: working model
 
 async function callGroq(systemPrompt, userPrompt) {
   const apiKey = process.env.GROQ_API_KEY;
@@ -16,30 +16,36 @@ async function callGroq(systemPrompt, userPrompt) {
   }
 
   console.log('[groq] Calling Groq API — model:', GROQ_MODEL, '— key:', `${apiKey.substring(0, 8)}...`);
-  const response = await axios.post(
-    GROQ_ENDPOINT,
-    {
-      model: GROQ_MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 4096,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 30000,
-    }
-  );
 
-  console.log('[groq] Response status:', response.status);
-  const content = response.data?.choices?.[0]?.message?.content || '';
-  console.log('[groq] Response length:', content.length, 'chars');
-  return content;
+  try {
+    const response = await axios.post(
+      GROQ_ENDPOINT,
+      {
+        model: GROQ_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+      }
+    );
+
+    console.log('[groq] Response status:', response.status);
+    const content = response.data?.choices?.[0]?.message?.content || '';
+    console.log('[groq] Response length:', content.length, 'chars');
+    return content;
+  } catch (error) {
+    console.error('[groq] API call failed:', error.response?.status, error.response?.data || error.message);
+    throw new Error(`Groq API error: ${error.response?.status || 'unknown'}`);
+  }
 }
 
 async function generateExecutiveReport(scanData) {
