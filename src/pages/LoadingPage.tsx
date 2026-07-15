@@ -45,32 +45,57 @@ export default function LoadingPage() {
 
     (async () => {
       try {
+        console.log('[LoadingPage] Starting scan with ID:', lastScanId);
+        
         const finalData = await pollScanStatus(
           lastScanId,
           (data) => {
             const stageIdx = stageStatusMap[data.status] ?? 0;
             setCurrentStage(stageIdx);
+            console.log('[LoadingPage] Status update:', data.status, 'Stage:', stageIdx);
           },
           2000,
           120000
         );
 
-        if (finalData.status === 'analyzing' && !finalData.executiveReport) {
-          const { executiveReport, technicalReport } = await generateReports(lastScanId);
-          finalData.executiveReport = executiveReport;
-          finalData.technicalReport = technicalReport;
+        console.log('[LoadingPage] Polling complete. Final status:', finalData.status);
+
+        // ✅ FIX: Ensure reports are generated
+        if (!finalData.executiveReport) {
+          console.log('[LoadingPage] No reports found. Generating...');
+          try {
+            const { executiveReport, technicalReport } = await generateReports(lastScanId);
+            finalData.executiveReport = executiveReport;
+            finalData.technicalReport = technicalReport;
+            console.log('[LoadingPage] Reports generated successfully');
+          } catch (reportErr) {
+            console.error('[LoadingPage] Report generation failed:', reportErr);
+            // Continue anyway — we have fallback data
+          }
         }
 
         setScanData(finalData);
 
+        // Complete the terminal animation
         for (let i = displayedStagesRef.current.length; i < scanStages.length; i++) {
           setDisplayedStages((prev) => [...prev, scanStages[i]]);
           setProgress(((i + 1) / scanStages.length) * 100);
-          await new Promise((r) => setTimeout(r, 200));
+          await new Promise((r) => setTimeout(r, 300));
         }
 
-        setTimeout(() => navigate('/reports'), 1000);
+        console.log('[LoadingPage] Navigation to /reports in 1 second...');
+        // Wait a moment, then navigate with data
+        setTimeout(() => {
+          navigate('/reports', { 
+            state: { 
+              scanId: lastScanId, 
+              reportData: finalData 
+            } 
+          });
+        }, 1000);
+        
       } catch (err) {
+        console.error('[LoadingPage] Error:', err);
         setError(err instanceof Error ? err.message : 'Scan failed');
         setTimeout(() => navigate('/scan'), 3000);
       }
