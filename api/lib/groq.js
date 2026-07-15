@@ -139,4 +139,4 @@ function generateMockTechnicalReport(scanData) {
   };
 }
 
-module.exports = { generateReports, generateExecutiveReport, generateTechnicalReport };
+export = { generateReports, generateExecutiveReport, generateTechnicalReport };
