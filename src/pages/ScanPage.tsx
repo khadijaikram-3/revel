@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Globe, ScanLine, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { startScan, getScanStatus, generateReports } from '../services/scanService';
+import { runMockScan } from '../services/mockScan';
 import { validateUrl } from '../lib/urlValidation';
 import { useScan } from '../context/ScanContext';
-import type { ScanData } from '../types/scan';
 
 type Status = 'idle' | 'scanning' | 'success' | 'error';
 
@@ -16,8 +15,9 @@ export default function ScanPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [progressLabel, setProgressLabel] = useState('');
+  const [progressPercent, setProgressPercent] = useState(0);
   const navigate = useNavigate();
-  const { setScanData, setLastScanId } = useScan();
+  const { setScanData } = useScan();
 
   const isScanning = status === 'scanning';
 
@@ -35,62 +35,33 @@ export default function ScanPage() {
     setUrl(normalizedUrl);
     setStatus('scanning');
     setProgressLabel('Starting scan...');
+    setProgressPercent(5);
 
     try {
-      const result = await startScan(normalizedUrl);
-      setLastScanId(result.scanId);
-      setScanData(null);
-      setSuccess('Scan started successfully. Analyzing target...');
-      setProgressLabel('Scan running...');
+      const data = await runMockScan(normalizedUrl, (stage, percent) => {
+        setProgressPercent(percent);
+        const labels: Record<string, string> = {
+          pending: 'Initializing scan engine...',
+          scanning: 'Probing target for vulnerabilities...',
+          analyzing: 'Analyzing results & generating reports...',
+        };
+        setProgressLabel(labels[stage] ?? 'Scanning...');
+      });
 
-      let finalData = await pollUntilComplete(result.scanId);
-      finalData = await ensureReports(result.scanId, finalData);
-      setScanData(finalData);
-
+      setScanData(data);
+      setProgressPercent(100);
       setProgressLabel('Assessment complete!');
       setSuccess('Scan complete! Redirecting to results...');
 
-      setTimeout(() => navigate('/reports'), 800);
+      setTimeout(() => navigate('/reports'), 900);
     } catch (err) {
       console.error('[ScanPage] Scan failed:', err);
-      const message = err instanceof Error ? err.message : 'Failed to start scan';
+      const message = err instanceof Error ? err.message : 'Failed to complete scan';
       setError(message);
       setStatus('error');
       setProgressLabel('');
+      setProgressPercent(0);
     }
-  };
-
-  const pollUntilComplete = async (scanId: string) => {
-    const maxAttempts = 90;
-    const intervalMs = 2000;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      setProgressLabel(`Analyzing target... (attempt ${attempt + 1})`);
-      const data = await getScanStatus(scanId);
-
-      if (data.status === 'complete') {
-        return data;
-      }
-      if (data.status === 'failed') {
-        throw new Error('Scan failed on the server');
-      }
-
-      await new Promise((r) => setTimeout(r, intervalMs));
-    }
-    throw new Error('Scan timed out. Please try again.');
-  };
-
-  const ensureReports = async (scanId: string, data: ScanData): Promise<ScanData> => {
-    if (data.executiveReport && data.technicalReport) return data;
-    setProgressLabel('Generating AI reports...');
-    try {
-      const { executiveReport, technicalReport } = await generateReports(scanId);
-      data.executiveReport = executiveReport;
-      data.technicalReport = technicalReport;
-    } catch (reportErr) {
-      console.error('[ScanPage] Report generation failed:', reportErr);
-    }
-    return data;
   };
 
   return (
@@ -195,10 +166,17 @@ export default function ScanPage() {
               <div className="mt-6 animate-fade-in">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-secondary-text text-sm font-mono">{progressLabel}</span>
-                  <Loader2 className="w-4 h-4 text-danger animate-spin" />
+                  <span className="text-secondary-text text-sm font-mono">{progressPercent}%</span>
                 </div>
                 <div className="h-2 bg-secondary-bg rounded-full overflow-hidden border border-border">
-                  <div className="h-full bg-danger rounded-full animate-pulse-glow" style={{ width: '75%' }} />
+                  <div
+                    className="h-full bg-danger rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-center mt-4 space-x-2">
+                  <Loader2 className="w-4 h-4 text-danger animate-spin" />
+                  <span className="text-muted-text text-xs font-mono">Do not close this window</span>
                 </div>
               </div>
             )}
