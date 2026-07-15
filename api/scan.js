@@ -48,9 +48,9 @@ export default async function handler(req, res) {
     console.log('[scan] SUPABASE_URL:', supabaseUrl ? supabaseUrl : 'NOT SET');
     console.log('[scan] SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? `${supabaseServiceKey.substring(0, 8)}...` : 'NOT SET');
 
-    const { createScan } = await import('./lib/scanStore.js');
-    const { runSecurityAPIChecks } = await import('./lib/securityApis.js');
-    const { generateMockScanData } = await import('./lib/mockData.js');
+    const { createScan, updateScan } = await import('./lib/scanStore.js');
+const { runSecurityAPIChecks } = await import('./lib/securityApis.js');
+const { generateMockScanData } = await import('./lib/mockData.js');
 
     // 1. Create scan row in Supabase
     console.log('[scan] Creating scan row in Supabase...');
