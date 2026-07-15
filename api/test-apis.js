@@ -1,10 +1,7 @@
 export default async function handler(req, res) {
   const results = {};
 
-  console.log('[test-apis] Starting API tests...');
-
-  // 1. Test OpenRouter API (NEW)
-  console.log('[test-apis] Testing OpenRouter...');
+  // 1. Test OpenRouter
   try {
     const openRouterKey = process.env.OPENROUTER_API_KEY;
     if (openRouterKey) {
@@ -37,49 +34,31 @@ export default async function handler(req, res) {
     results.openrouter = { error: err.message };
   }
 
-  // 2. Test Groq API
-  console.log('[test-apis] Testing Groq...');
+  // 2. Test Shodan InternetDB (NO API KEY!)
   try {
-    const groqKey = process.env.GROQ_API_KEY;
-    if (groqKey) {
-      const response = await fetch(
-        'https://api.groq.com/openai/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${groqKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'llama-3.1-8b-instant',
-            messages: [{ role: 'user', content: 'Say hello' }],
-            max_tokens: 10,
-          }),
-        }
-      );
-      results.groq = {
-        status: response.status,
-        ok: response.ok,
-        message: response.ok ? '✅ Groq is working!' : `❌ Error: ${response.status}`
-      };
-    } else {
-      results.groq = { error: 'No Groq API key found' };
+    const response = await fetch('https://internetdb.shodan.io/example.com');
+    results.shodan_internetdb = {
+      status: response.status,
+      ok: response.ok,
+      message: response.ok ? '✅ Shodan InternetDB is working!' : `❌ Error: ${response.status}`
+    };
+    if (response.ok) {
+      const data = await response.json();
+      results.shodan_internetdb.ports = data.ports || [];
+      results.shodan_internetdb.vulns = data.vulns || {};
     }
   } catch (err) {
-    results.groq = { error: err.message };
+    results.shodan_internetdb = { error: err.message };
   }
 
-  // 3. Test VirusTotal API
-  console.log('[test-apis] Testing VirusTotal...');
+  // 3. Test VirusTotal
   try {
     const vtKey = process.env.VIRUSTOTAL_API_KEY;
     if (vtKey) {
       const encodedUrl = Buffer.from('https://example.com').toString('base64').replace(/=/g, '');
       const response = await fetch(
         `https://www.virustotal.com/api/v3/urls/${encodedUrl}`,
-        {
-          headers: { 'x-apikey': vtKey },
-        }
+        { headers: { 'x-apikey': vtKey } }
       );
       results.virustotal = {
         status: response.status,
@@ -93,26 +72,5 @@ export default async function handler(req, res) {
     results.virustotal = { error: err.message };
   }
 
-  // 4. Test Shodan API
-  console.log('[test-apis] Testing Shodan...');
-  try {
-    const shodanKey = process.env.SHODAN_API_KEY;
-    if (shodanKey) {
-      const response = await fetch(
-        `https://api.shodan.io/shodan/host/example.com?key=${shodanKey}`
-      );
-      results.shodan = {
-        status: response.status,
-        ok: response.ok,
-        message: response.ok ? '✅ Shodan is working!' : `❌ Error: ${response.status}`
-      };
-    } else {
-      results.shodan = { error: 'No Shodan API key found' };
-    }
-  } catch (err) {
-    results.shodan = { error: err.message };
-  }
-
-  console.log('[test-apis] Tests complete!');
   res.status(200).json(results);
 }
