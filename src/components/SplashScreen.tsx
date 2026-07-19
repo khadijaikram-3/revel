@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const SPLASH_KEY = 'revel_splash_seen';
-const VISIBLE_DURATION = 2500;
+const VISIBLE_DURATION = 3000;
 const FADE_DURATION = 600;
 
 export default function SplashScreen() {
@@ -28,29 +28,25 @@ export default function SplashScreen() {
       className={`fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-[600ms] ${
         fadingOut ? 'opacity-0' : 'opacity-100'
       }`}
-      style={{
-        background: 'linear-gradient(135deg, #E11D48 0%, #E11D48 48%, #0A0A0A 52%, #0A0A0A 100%)',
-      }}
+      style={{ background: '#0A0A0A' }}
     >
       <img
         src="/revel_logo.jpeg"
         alt="Revel"
-        className="w-32 sm:w-36 h-auto rounded-lg select-none animate-splash-pulse relative z-20"
+        className="h-24 w-auto sm:h-28 md:h-32 rounded-lg select-none animate-splash-pulse mb-6"
         style={{
-          boxShadow:
-            '0 0 25px rgba(225, 29, 72, 0.6), 0 0 60px rgba(225, 29, 72, 0.3), 0 0 100px rgba(225, 29, 72, 0.15)',
+          boxShadow: '0 0 25px rgba(225, 29, 72, 0.4), 0 0 60px rgba(225, 29, 72, 0.2)',
         }}
       />
-
-      {/* Glowing red scan line — sweeps top to bottom over 2.5s, above the logo */}
-      <div
-        className="absolute left-0 right-0 h-[3px] animate-splash-scan z-30 pointer-events-none"
+      <h1
+        className="font-orbitron font-extrabold text-5xl sm:text-7xl tracking-[0.2em] text-white select-none animate-splash-pulse"
         style={{
-          background:
-            'linear-gradient(90deg, transparent, rgba(225, 29, 72, 0.9), #FF3B5C, rgba(225, 29, 72, 0.9), transparent)',
-          boxShadow: '0 0 12px rgba(225, 29, 72, 0.8), 0 0 30px rgba(225, 29, 72, 0.5)',
+          textShadow:
+            '0 0 10px rgba(225, 29, 72, 0.8), 0 0 25px rgba(225, 29, 72, 0.6), 0 0 50px rgba(225, 29, 72, 0.4)',
         }}
-      />
+      >
+        REVEL
+      </h1>
     </div>
   );
 }

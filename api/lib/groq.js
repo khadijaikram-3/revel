@@ -1,53 +1,45 @@
 /**
- * OpenRouter AI integration for generating Executive and Technical reports.
- * Uses DeepSeek V4 Flash via OpenRouter API.
+ * Groq AI integration for generating Executive and Technical reports.
+ * Uses the gpt-oss-120b model via the Groq API.
  */
 
-import axios from 'axios';
+const axios = require('axios');
 
-const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_MODEL = 'deepseek/deepseek-chat-v3-0324'; // ✅ Free model
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'gpt-oss-120b';
 
-async function callOpenRouter(systemPrompt, userPrompt) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+async function callGroq(systemPrompt, userPrompt) {
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    console.log('[openrouter] No API key — skipping');
-    throw new Error('OPENROUTER_API_KEY is not configured');
+    console.log('[groq] No API key — skipping Groq call');
+    throw new Error('GROQ_API_KEY is not configured');
   }
 
-  console.log('[openrouter] Calling OpenRouter API — model:', OPENROUTER_MODEL);
-
-  try {
-    const response = await axios.post(
-      OPENROUTER_ENDPOINT,
-      {
-        model: OPENROUTER_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 4096,
+  console.log('[groq] Calling Groq API — model:', GROQ_MODEL, '— key:', `${apiKey.substring(0, 8)}...`);
+  const response = await axios.post(
+    GROQ_ENDPOINT,
+    {
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 4096,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://revel-gules.vercel.app',
-          'X-Title': 'Revel Security Scanner',
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000,
-      }
-    );
+      timeout: 30000,
+    }
+  );
 
-    console.log('[openrouter] Response status:', response.status);
-    const content = response.data?.choices?.[0]?.message?.content || '';
-    console.log('[openrouter] Response length:', content.length, 'chars');
-    return content;
-  } catch (error) {
-    console.error('[openrouter] API call failed:', error.response?.status, error.response?.data || error.message);
-    throw new Error(`OpenRouter API error: ${error.response?.status || 'unknown'}`);
-  }
+  console.log('[groq] Response status:', response.status);
+  const content = response.data?.choices?.[0]?.message?.content || '';
+  console.log('[groq] Response length:', content.length, 'chars');
+  return content;
 }
 
 async function generateExecutiveReport(scanData) {
@@ -62,13 +54,13 @@ async function generateExecutiveReport(scanData) {
   const userPrompt = `Scan Data:\n${JSON.stringify(scanData, null, 2)}`;
 
   try {
-    console.log('[openrouter] Generating executive report...');
-    const text = await callOpenRouter(systemPrompt, userPrompt);
+    console.log('[groq] Generating executive report...');
+    const text = await callGroq(systemPrompt, userPrompt);
     const parsed = JSON.parse(text);
-    console.log('[openrouter] Executive report parsed OK — riskScore:', parsed.riskScore);
-    return { source: 'openrouter', ...parsed };
+    console.log('[groq] Executive report parsed OK — riskScore:', parsed.riskScore);
+    return { source: 'groq', ...parsed };
   } catch (error) {
-    console.error('[openrouter] Executive report generation failed:', error.message);
+    console.error('[groq] Executive report generation failed:', error.message);
     return generateMockExecutiveReport(scanData);
   }
 }
@@ -85,24 +77,24 @@ async function generateTechnicalReport(scanData) {
   const userPrompt = `Scan Data:\n${JSON.stringify(scanData, null, 2)}`;
 
   try {
-    console.log('[openrouter] Generating technical report...');
-    const text = await callOpenRouter(systemPrompt, userPrompt);
+    console.log('[groq] Generating technical report...');
+    const text = await callGroq(systemPrompt, userPrompt);
     const parsed = JSON.parse(text);
-    console.log('[openrouter] Technical report parsed OK — riskScore:', parsed.riskScore, '— vulns:', parsed.vulnerabilities?.length || 0);
-    return { source: 'openrouter', ...parsed };
+    console.log('[groq] Technical report parsed OK — riskScore:', parsed.riskScore, '— vulns:', parsed.vulnerabilities?.length || 0);
+    return { source: 'groq', ...parsed };
   } catch (error) {
-    console.error('[openrouter] Technical report generation failed:', error.message);
+    console.error('[groq] Technical report generation failed:', error.message);
     return generateMockTechnicalReport(scanData);
   }
 }
 
 async function generateReports(scanData) {
-  console.log('[openrouter] Generating both reports in parallel...');
+  console.log('[groq] Generating both reports in parallel...');
   const [executive, technical] = await Promise.all([
     generateExecutiveReport(scanData),
     generateTechnicalReport(scanData),
   ]);
-  console.log('[openrouter] Both reports generated — exec source:', executive.source, '— tech source:', technical.source);
+  console.log('[groq] Both reports generated — exec source:', executive.source, '— tech source:', technical.source);
   return { executive, technical };
 }
 
@@ -147,4 +139,4 @@ function generateMockTechnicalReport(scanData) {
   };
 }
 
-export { generateReports, generateExecutiveReport, generateTechnicalReport };
+module.exports = { generateReports, generateExecutiveReport, generateTechnicalReport };
