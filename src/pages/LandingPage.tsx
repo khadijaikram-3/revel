@@ -201,26 +201,26 @@ export default function LandingPage() {
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-40 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+      <section className="relative pt-44 pb-24 md:pt-52 md:pb-36 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-danger/5 via-transparent to-transparent" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-danger/5 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="font-heading font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-primary-text leading-tight animate-slide-up">
+          <h1 className="font-heading font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-primary-text leading-[1.1] tracking-tight animate-slide-up">
             Your Security Holes Are Visible.
             <br />
             <span className="text-danger">Close Them.</span>
           </h1>
-          <p className="mt-6 text-secondary-text text-lg md:text-xl max-w-3xl mx-auto animate-slide-up animate-delay-100">
+          <p className="mt-8 text-secondary-text text-lg md:text-xl max-w-3xl mx-auto leading-relaxed animate-slide-up animate-delay-100">
             AI-powered website security assessment that transforms technical vulnerabilities into actionable intelligence.
           </p>
-          <p className="mt-4 font-heading font-semibold text-lg md:text-xl text-gradient animate-slide-up animate-delay-200">
+          <p className="mt-5 font-heading font-semibold text-lg md:text-xl text-gradient animate-slide-up animate-delay-200">
             Reveal the Risk. Close the Hole.
           </p>
 
           {/* Scan Input */}
-          <div className="mt-12 max-w-2xl mx-auto animate-slide-up animate-delay-300">
-            <div className="glass-card p-2 flex flex-col sm:flex-row gap-3">
+          <div className="mt-14 max-w-2xl mx-auto animate-slide-up animate-delay-300">
+            <div className="glass-card p-2.5 flex flex-col sm:flex-row gap-3 rounded-xl">
               <div className="flex-1 relative">
                 <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-text" />
                 <input
@@ -232,13 +232,13 @@ export default function LandingPage() {
                 />
               </div>
               <Link to="/scan">
-                <button className="btn-primary px-8 py-4 flex items-center justify-center space-x-2">
+                <button className="btn-primary px-8 py-4 h-[58px] flex items-center justify-center space-x-2 rounded-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-danger/30">
                   <ScanLine className="w-5 h-5" />
                   <span>Scan Website</span>
                 </button>
               </Link>
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-text">
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-text">
               <span className="flex items-center space-x-1">
                 <UserX className="w-4 h-4" />
                 <span>Anonymous</span>
@@ -264,31 +264,31 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works Section */}
-      <section id="about" className="py-20 md:py-32 bg-secondary-bg">
+      <section id="about" className="py-24 md:py-36 bg-secondary-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <h2 className="section-title">Security Assessment in Three Steps</h2>
             <p className="section-subtitle">
               From URL submission to comprehensive reports in under three minutes
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 relative">
+          <div className="grid md:grid-cols-3 gap-8 md:gap-10 relative">
             {howItWorks.map((step, index) => (
               <div key={step.step} className="relative">
-                <div className="glass-card p-8 text-center group hover:border-danger/50 transition-all duration-300 glow-border">
-                  <div className="w-16 h-16 mx-auto mb-6 rounded-xl bg-danger/10 flex items-center justify-center group-hover:bg-danger/20 transition-colors">
-                    <step.icon className="w-8 h-8 text-danger" />
+                <div className="glass-card p-8 md:p-10 text-center group hover:border-danger/50 hover:-translate-y-1 hover:shadow-xl hover:shadow-danger/10 transition-all duration-300 glow-border rounded-xl">
+                  <div className="w-18 h-18 mx-auto mb-7 rounded-2xl bg-danger/10 flex items-center justify-center group-hover:bg-danger/20 group-hover:scale-105 transition-all duration-300">
+                    <step.icon className="w-9 h-9 text-danger" />
                   </div>
-                  <div className="font-mono text-sm text-silver mb-2">Step {step.step}</div>
-                  <h3 className="font-heading font-semibold text-xl text-primary-text mb-3">
+                  <div className="font-mono text-sm text-silver mb-3 tracking-wider">Step {step.step}</div>
+                  <h3 className="font-heading font-semibold text-xl md:text-2xl text-primary-text mb-4 tracking-tight">
                     {step.title}
                   </h3>
-                  <p className="text-secondary-text">{step.description}</p>
+                  <p className="text-secondary-text leading-relaxed">{step.description}</p>
                 </div>
                 {index < howItWorks.length - 1 && (
-                  <div className="hidden md:flex absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
-                    <div className="w-8 h-8 rounded-full bg-card-bg border border-border flex items-center justify-center animate-pulse">
+                  <div className="hidden md:flex absolute top-1/2 -right-5 transform -translate-y-1/2 z-10">
+                    <div className="w-10 h-10 rounded-full bg-card-bg border border-border flex items-center justify-center animate-pulse shadow-lg shadow-danger/10">
                       <ChevronRight className="w-4 h-4 text-danger" />
                     </div>
                   </div>
@@ -300,9 +300,9 @@ export default function LandingPage() {
       </section>
 
       {/* Security Coverage Section */}
-      <section className="py-20 md:py-32">
+      <section className="py-24 md:py-36">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <h2 className="section-title">What Revel Detects</h2>
             <p className="section-subtitle">
               Comprehensive security coverage powered by AI-driven threat intelligence
@@ -313,15 +313,15 @@ export default function LandingPage() {
             {securityCategories.map((category) => (
               <div
                 key={category.name}
-                className="group glass-card p-6 text-center cursor-pointer hover:border-silver/50 transition-all duration-300"
+                className="group glass-card p-6 md:p-7 text-center cursor-pointer hover:border-silver/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-silver/10 transition-all duration-300 rounded-xl"
               >
-                <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-card-bg border border-border flex items-center justify-center group-hover:border-silver/50 group-hover:bg-silver/10 transition-all duration-300">
-                  <category.icon className="w-6 h-6 text-muted-text group-hover:text-silver transition-colors" />
+                <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-card-bg border border-border flex items-center justify-center group-hover:border-silver/50 group-hover:bg-silver/10 group-hover:scale-105 transition-all duration-300">
+                  <category.icon className="w-7 h-7 text-muted-text group-hover:text-silver transition-colors" />
                 </div>
-                <h3 className="font-heading font-semibold text-primary-text mb-2">
+                <h3 className="font-heading font-semibold text-primary-text mb-2 tracking-tight">
                   {category.name}
                 </h3>
-                <p className="text-secondary-text text-sm">{category.description}</p>
+                <p className="text-secondary-text text-sm leading-relaxed">{category.description}</p>
               </div>
             ))}
           </div>
@@ -329,9 +329,9 @@ export default function LandingPage() {
       </section>
 
       {/* Methodology Section */}
-      <section id="methodology" className="py-20 md:py-32 bg-secondary-bg">
+      <section id="methodology" className="py-24 md:py-36 bg-secondary-bg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <h2 className="section-title">Assessment Methodology</h2>
             <p className="section-subtitle">
               A systematic approach to comprehensive security analysis
@@ -341,7 +341,7 @@ export default function LandingPage() {
           <div className="relative">
             <div className="absolute left-6 md:left-8 top-0 bottom-0 w-px bg-gradient-to-b from-danger via-silver to-danger" />
 
-            <div className="space-y-8">
+            <div className="space-y-10">
               {methodologySteps.map((step, index) => (
                 <div
                   key={step.name}
@@ -351,22 +351,22 @@ export default function LandingPage() {
                     <div className="w-2 h-2 rounded-full bg-danger" />
                   </div>
 
-                  <div className="glass-card p-6 group hover:border-danger/50 transition-all duration-300">
+                  <div className="glass-card p-6 md:p-7 group hover:border-danger/50 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-danger/10 transition-all duration-300 rounded-xl">
                     <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-danger/10 flex items-center justify-center shrink-0 group-hover:bg-danger/20 transition-colors">
+                      <div className="w-11 h-11 rounded-xl bg-danger/10 flex items-center justify-center shrink-0 group-hover:bg-danger/20 group-hover:scale-105 transition-all duration-300">
                         <step.icon className="w-5 h-5 text-danger" />
                       </div>
                       <div>
-                        <h3 className="font-heading font-semibold text-lg text-primary-text mb-1">
+                        <h3 className="font-heading font-semibold text-lg text-primary-text mb-1.5 tracking-tight">
                           {step.name}
                         </h3>
-                        <p className="text-secondary-text">{step.description}</p>
+                        <p className="text-secondary-text leading-relaxed">{step.description}</p>
                       </div>
                     </div>
                   </div>
 
                   {index < methodologySteps.length - 1 && (
-                    <div className="absolute left-[27px] md:left-[35px] top-full h-8 flex items-center justify-center">
+                    <div className="absolute left-[27px] md:left-[35px] top-full h-10 flex items-center justify-center">
                       <ChevronDown className="w-4 h-4 text-silver animate-bounce" />
                     </div>
                   )}
@@ -378,27 +378,27 @@ export default function LandingPage() {
       </section>
 
       {/* AI Dual Reports Section */}
-      <section id="reports" className="py-20 md:py-32">
+      <section id="reports" className="py-24 md:py-36">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <h2 className="section-title">Two Reports. One Assessment.</h2>
             <p className="section-subtitle">
               Tailored intelligence for both business stakeholders and security professionals
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-10">
             {/* Executive Summary */}
-            <div className="glass-card overflow-hidden">
-              <div className="bg-danger/10 px-6 py-4 border-b border-border">
+            <div className="glass-card overflow-hidden rounded-xl hover:-translate-y-1 hover:shadow-xl hover:shadow-danger/10 transition-all duration-300">
+              <div className="bg-danger/10 px-6 py-5 border-b border-border">
                 <div className="flex items-center space-x-3">
                   <FileText className="w-5 h-5 text-danger" />
-                  <h3 className="font-heading font-semibold text-lg text-primary-text">
+                  <h3 className="font-heading font-semibold text-lg text-primary-text tracking-tight">
                     Executive Summary
                   </h3>
                 </div>
               </div>
-              <div className="p-6 bg-white/[0.02]">
+              <div className="p-6 md:p-7 bg-white/[0.02]">
                 <div className="space-y-4">
                   <div className="h-4 bg-card-bg rounded w-3/4" />
                   <div className="h-3 bg-card-bg/50 rounded w-full" />
@@ -430,16 +430,16 @@ export default function LandingPage() {
             </div>
 
             {/* Technical Report */}
-            <div className="glass-card overflow-hidden">
-              <div className="bg-danger/10 px-6 py-4 border-b border-border">
+            <div className="glass-card overflow-hidden rounded-xl hover:-translate-y-1 hover:shadow-xl hover:shadow-danger/10 transition-all duration-300">
+              <div className="bg-danger/10 px-6 py-5 border-b border-border">
                 <div className="flex items-center space-x-3">
                   <FileSearch className="w-5 h-5 text-danger" />
-                  <h3 className="font-heading font-semibold text-lg text-primary-text">
+                  <h3 className="font-heading font-semibold text-lg text-primary-text tracking-tight">
                     Technical Report
                   </h3>
                 </div>
               </div>
-              <div className="p-6 bg-white/[0.02] font-mono text-sm">
+              <div className="p-6 md:p-7 bg-white/[0.02] font-mono text-sm">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <span className="text-danger font-semibold">CVSS:</span>
@@ -475,28 +475,28 @@ export default function LandingPage() {
       </section>
 
       {/* Privacy Section */}
-      <section id="privacy" className="py-20 md:py-32 bg-secondary-bg">
+      <section id="privacy" className="py-24 md:py-36 bg-secondary-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <h2 className="section-title">Anonymous by Design</h2>
             <p className="section-subtitle">
               Your privacy is not a feature. It is our foundation.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
             {privacyFeatures.map((feature) => (
               <div
                 key={feature.name}
-                className="glass-card p-6 text-center group hover:border-danger/50 transition-all duration-300"
+                className="glass-card p-6 md:p-7 text-center group hover:border-danger/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-danger/10 transition-all duration-300 rounded-xl"
               >
-                <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-danger/10 flex items-center justify-center group-hover:bg-danger/20 transition-colors">
-                  <feature.icon className="w-6 h-6 text-danger" />
+                <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-danger/10 flex items-center justify-center group-hover:bg-danger/20 group-hover:scale-105 transition-all duration-300">
+                  <feature.icon className="w-7 h-7 text-danger" />
                 </div>
-                <h3 className="font-heading font-semibold text-primary-text mb-2">
+                <h3 className="font-heading font-semibold text-primary-text mb-2.5 tracking-tight">
                   {feature.name}
                 </h3>
-                <p className="text-secondary-text text-sm">{feature.description}</p>
+                <p className="text-secondary-text text-sm leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -504,9 +504,9 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 md:py-32">
+      <section className="py-24 md:py-36">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <h2 className="section-title">Frequently Asked Questions</h2>
             <p className="section-subtitle">
               Clear answers to common questions about Revel
@@ -515,12 +515,12 @@ export default function LandingPage() {
 
           <div className="space-y-4">
             {faqs.map((faq, index) => (
-              <div key={index} className="glass-card overflow-hidden">
+              <div key={index} className="glass-card overflow-hidden rounded-xl hover:shadow-lg hover:shadow-danger/5 transition-all duration-300">
                 <button
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-card-bg/50 transition-colors"
+                  className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-card-bg/50 transition-colors"
                 >
-                  <span className="font-heading font-semibold text-primary-text pr-4">
+                  <span className="font-heading font-semibold text-primary-text pr-4 tracking-tight">
                     {faq.question}
                   </span>
                   <ChevronDown
@@ -534,7 +534,7 @@ export default function LandingPage() {
                     openFaq === index ? 'max-h-96' : 'max-h-0'
                   }`}
                 >
-                  <div className="px-6 pb-4 text-secondary-text">{faq.answer}</div>
+                  <div className="px-6 pb-5 text-secondary-text leading-relaxed">{faq.answer}</div>
                 </div>
               </div>
             ))}
@@ -543,18 +543,18 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 bg-secondary-bg border-t border-border">
+      <footer className="py-14 md:py-16 bg-secondary-bg border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="flex flex-col items-center md:items-start">
-              <div className="flex items-center space-x-2 mb-2">
+              <div className="flex items-center space-x-2.5 mb-3">
                 <ShieldAlert className="w-6 h-6 text-silver" />
-                <span className="font-heading font-bold text-xl text-primary-text">Revel</span>
+                <span className="font-heading font-bold text-xl text-primary-text tracking-tight">Revel</span>
               </div>
               <p className="text-secondary-text text-sm">Reveal the Risk. Close the Hole.</p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
+            <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm">
               <a href="#about" className="text-secondary-text hover:text-silver transition-colors">
                 About
               </a>
@@ -573,7 +573,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+          <div className="mt-10 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
             <p className="text-muted-text text-sm">
               &copy; 2026 Revel. All rights reserved.
             </p>
