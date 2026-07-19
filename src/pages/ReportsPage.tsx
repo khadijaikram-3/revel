@@ -67,10 +67,13 @@ export default function ReportsPage() {
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         <main className="flex-1 pt-32 pb-20 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-secondary-text text-lg mb-6">No scan data available.</p>
+          <div className="text-center max-w-md mx-auto px-6">
+            <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-card-bg border border-border flex items-center justify-center">
+              <FileText className="w-7 h-7 text-muted-text" />
+            </div>
+            <p className="text-secondary-text text-lg mb-8 leading-relaxed">No scan data available.</p>
             <Link to="/scan">
-              <button className="btn-primary">Run a Scan</button>
+              <button className="btn-primary px-8 py-3.5">Run a Scan</button>
             </Link>
           </div>
         </main>
@@ -83,32 +86,43 @@ export default function ReportsPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="flex-1 pt-32 pb-20">
+      <main className="flex-1 pt-32 pb-24 md:pb-32">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header Section */}
-          <div className="text-center mb-12">
-            <h1 className="font-heading font-bold text-3xl md:text-4xl text-primary-text mb-4">
-              Security Assessment Complete
+          <div className="text-center mb-16 md:mb-20">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-success/10 border border-success/30">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-success text-xs font-mono font-semibold tracking-widest uppercase">Scan Complete</span>
+            </div>
+            <h1 className="font-heading font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-primary-text mb-5 leading-[1.1] tracking-tight">
+              Security Assessment
+              <span className="block text-gradient mt-1">Complete</span>
             </h1>
-            <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
-              <div className="flex items-center space-x-2 text-secondary-text text-sm">
-                <Globe className="w-4 h-4" />
-                <span>Target: {data.targetUrl}</span>
+            <p className="text-secondary-text text-base md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
+              Your security assessment has finished. Review the findings and recommended actions below.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 mb-6 text-sm text-secondary-text">
+              <div className="flex items-center space-x-2">
+                <Globe className="w-4 h-4 text-silver" />
+                <span className="text-muted-text">Target:</span>
+                <span className="text-primary-text font-medium font-mono">{data.targetUrl}</span>
               </div>
-              <div className="flex items-center space-x-2 text-secondary-text text-sm">
-                <span className="text-muted-text">|</span>
-                <span>Date: {displayDate}</span>
+              <span className="text-border hidden sm:block">|</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-muted-text">Date:</span>
+                <span className="text-primary-text font-medium">{displayDate}</span>
               </div>
-              <div className="flex items-center space-x-2 text-secondary-text text-sm">
-                <span className="text-muted-text">|</span>
-                <span>Duration: {data.duration || 'N/A'}</span>
+              <span className="text-border hidden sm:block">|</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-muted-text">Duration:</span>
+                <span className="text-primary-text font-medium">{data.duration || 'N/A'}</span>
               </div>
             </div>
-            <span className="badge-enterprise">Assessment ID: {assessmentId}</span>
+            <span className="badge-enterprise inline-block tracking-[0.12em]">Assessment ID: {assessmentId}</span>
           </div>
 
           {/* Risk Score Gauge */}
-          <div className="flex justify-center mb-12">
+          <div className="flex justify-center mb-16 md:mb-20">
             <div className="hexagon-gauge">
               <div
                 className="hexagon-fill"
@@ -122,57 +136,60 @@ export default function ReportsPage() {
           </div>
 
           {/* Statistics Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-            <div className="glass-card-danger p-6 text-center animate-card-enter" style={{ animationDelay: '100ms' }}>
-              <div className="text-4xl font-heading font-bold text-danger mb-2">{counts.critical}</div>
-              <div className="text-secondary-text text-sm font-medium">Critical</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 mb-16 md:mb-20">
+            <div className="glass-card-danger p-6 md:p-7 text-center animate-card-enter rounded-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-danger/10" style={{ animationDelay: '100ms' }}>
+              <div className="text-4xl md:text-5xl font-heading font-bold text-danger mb-2 leading-none">{counts.critical}</div>
+              <div className="text-secondary-text text-sm font-medium tracking-wide">Critical</div>
             </div>
-            <div className="glass-card-medium p-6 text-center animate-card-enter" style={{ animationDelay: '200ms' }}>
-              <div className="text-4xl font-heading font-bold text-medium-risk mb-2">{counts.medium}</div>
-              <div className="text-secondary-text text-sm font-medium">Medium</div>
+            <div className="glass-card-medium p-6 md:p-7 text-center animate-card-enter rounded-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-medium-risk/10" style={{ animationDelay: '200ms' }}>
+              <div className="text-4xl md:text-5xl font-heading font-bold text-medium-risk mb-2 leading-none">{counts.medium}</div>
+              <div className="text-secondary-text text-sm font-medium tracking-wide">Medium</div>
             </div>
-            <div className="glass-card-low p-6 text-center animate-card-enter" style={{ animationDelay: '300ms' }}>
-              <div className="text-4xl font-heading font-bold text-low-risk mb-2">{counts.low}</div>
-              <div className="text-secondary-text text-sm font-medium">Low</div>
+            <div className="glass-card-low p-6 md:p-7 text-center animate-card-enter rounded-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-low-risk/10" style={{ animationDelay: '300ms' }}>
+              <div className="text-4xl md:text-5xl font-heading font-bold text-low-risk mb-2 leading-none">{counts.low}</div>
+              <div className="text-secondary-text text-sm font-medium tracking-wide">Low</div>
             </div>
-            <div className="glass-card p-6 text-center animate-card-enter" style={{ animationDelay: '400ms' }}>
-              <div className="text-4xl font-heading font-bold text-silver mb-2">{vulnerabilities.length}</div>
-              <div className="text-secondary-text text-sm font-medium">Total Issues</div>
+            <div className="glass-card p-6 md:p-7 text-center animate-card-enter rounded-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-silver/10" style={{ animationDelay: '400ms' }}>
+              <div className="text-4xl md:text-5xl font-heading font-bold text-silver mb-2 leading-none">{vulnerabilities.length}</div>
+              <div className="text-secondary-text text-sm font-medium tracking-wide">Total Issues</div>
             </div>
           </div>
 
           {/* Vulnerability List */}
-          <div className="mb-12">
-            <h2 className="font-heading font-semibold text-2xl text-primary-text mb-6">
-              Identified Vulnerabilities
-            </h2>
-            <div className="space-y-4">
+          <div className="mb-16 md:mb-20">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-1 h-8 bg-danger rounded-full" />
+              <h2 className="font-heading font-bold text-2xl md:text-3xl text-primary-text tracking-tight">
+                Identified Vulnerabilities
+              </h2>
+            </div>
+            <div className="space-y-4 md:space-y-5">
               {vulnerabilities.map((vuln, index) => {
                 const cfg = severityConfig[vuln.severity] || severityConfig.Low;
                 return (
                   <div
                     key={vuln.id || index}
-                    className={`${cfg.borderClass} p-6 animate-card-enter`}
+                    className={`${cfg.borderClass} p-6 md:p-7 animate-card-enter rounded-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-danger/5`}
                     style={{ animationDelay: `${(index + 1) * 100}ms` }}
                   >
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-heading font-semibold text-lg text-primary-text">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-3 mb-3">
+                          <h3 className="font-heading font-semibold text-lg md:text-xl text-primary-text leading-tight">
                             {vuln.title}
                           </h3>
-                          <span className={`${cfg.bgSeverity} ${cfg.severityColor} text-xs font-semibold px-2 py-1 rounded`}>
+                          <span className={`${cfg.bgSeverity} ${cfg.severityColor} text-xs font-semibold font-mono px-2.5 py-1 rounded-md tracking-wide`}>
                             {vuln.severity}
                           </span>
                         </div>
-                        <p className="text-secondary-text text-sm mb-3">{vuln.description}</p>
+                        <p className="text-secondary-text text-sm md:text-[0.95rem] leading-[1.7]">{vuln.description}</p>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 md:pl-6 md:border-l md:border-border shrink-0">
                         <div className="text-right">
-                          <div className="text-muted-text text-xs uppercase tracking-wide mb-1">
+                          <div className="text-muted-text text-xs uppercase tracking-wider mb-1.5">
                             CVSS Score
                           </div>
-                          <div className={`text-2xl font-heading font-bold ${cfg.severityColor}`}>
+                          <div className={`text-3xl font-heading font-bold ${cfg.severityColor} leading-none`}>
                             {vuln.cvss}
                           </div>
                         </div>
@@ -185,20 +202,20 @@ export default function ReportsPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/executive-report">
-              <button className="btn-primary flex items-center space-x-2 px-8 py-4">
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4">
+            <Link to="/executive-report" className="flex-1 sm:flex-initial">
+              <button className="btn-primary flex items-center justify-center space-x-2 px-8 py-4 w-full sm:w-auto h-14 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-danger/30">
                 <FileText className="w-5 h-5" />
                 <span>View Executive Report</span>
               </button>
             </Link>
-            <Link to="/technical-report">
-              <button className="btn-outline flex items-center space-x-2 px-8 py-4">
+            <Link to="/technical-report" className="flex-1 sm:flex-initial">
+              <button className="btn-outline flex items-center justify-center space-x-2 px-8 py-4 w-full sm:w-auto h-14 transition-all duration-300 hover:-translate-y-0.5">
                 <FileSearch className="w-5 h-5" />
                 <span>View Technical Report</span>
               </button>
             </Link>
-            <button className="btn-silver flex items-center space-x-2 px-8 py-4">
+            <button className="btn-silver flex items-center justify-center space-x-2 px-8 py-4 w-full sm:w-auto h-14 transition-all duration-300 hover:-translate-y-0.5">
               <Download className="w-5 h-5" />
               <span>Download PDF</span>
             </button>
