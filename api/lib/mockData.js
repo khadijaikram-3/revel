@@ -92,4 +92,4 @@ function generateMockScanData(targetUrl) {
   };
 }
 
-module.exports = { generateMockScanData, mockVulnerabilities };
+export { generateMockScanData, mockVulnerabilities };
