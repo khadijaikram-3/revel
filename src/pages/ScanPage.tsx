@@ -1,33 +1,66 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, ScanLine } from 'lucide-react';
+import { Globe, ScanLine, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { startScan } from '../services/scanService';
+import { runMockScan } from '../services/mockScan';
+import { validateUrl } from '../lib/urlValidation';
 import { useScan } from '../context/ScanContext';
+
+type Status = 'idle' | 'scanning' | 'success' | 'error';
 
 export default function ScanPage() {
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>('idle');
+  const [progressLabel, setProgressLabel] = useState('');
+  const [progressPercent, setProgressPercent] = useState(0);
   const navigate = useNavigate();
-  const { setScanData, setLastScanId } = useScan();
+  const { setScanData } = useScan();
+
+  const isScanning = status === 'scanning';
 
   const handleStartScan = async () => {
-    if (!url.trim()) return;
-
     setError(null);
-    setLoading(true);
+    setSuccess(null);
+
+    const { valid, normalizedUrl, error: validationError } = validateUrl(url);
+    if (!valid || !normalizedUrl) {
+      setError(validationError || 'Please enter a valid URL');
+      setStatus('error');
+      return;
+    }
+
+    setUrl(normalizedUrl);
+    setStatus('scanning');
+    setProgressLabel('Initializing scan engine...');
+    setProgressPercent(5);
 
     try {
-      const result = await startScan(url.trim());
-      setLastScanId(result.scanId);
-      setScanData(null);
-      navigate('/loading');
+      const data = await runMockScan(normalizedUrl, (stage, percent) => {
+        setProgressPercent(percent);
+        const labels: Record<string, string> = {
+          pending: 'Initializing scan engine...',
+          scanning: 'Probing target for vulnerabilities...',
+          analyzing: 'Analyzing results & generating reports...',
+        };
+        setProgressLabel(labels[stage] ?? 'Scanning...');
+      });
+
+      setScanData(data);
+      setProgressPercent(100);
+      setProgressLabel('Assessment complete!');
+      setSuccess('Scan complete! Redirecting to results...');
+
+      setTimeout(() => navigate('/reports'), 900);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start scan');
-    } finally {
-      setLoading(false);
+      console.error('[ScanPage] Scan failed:', err);
+      const message = err instanceof Error ? err.message : 'Failed to complete scan';
+      setError(message);
+      setStatus('error');
+      setProgressLabel('');
+      setProgressPercent(0);
     }
   };
 
@@ -78,25 +111,73 @@ export default function ScanPage() {
                 <input
                   type="url"
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    if (status === 'error') setStatus('idle');
+                    if (error) setError(null);
+                  }}
                   placeholder="https://example.com"
-                  onKeyDown={(e) => e.key === 'Enter' && handleStartScan()}
-                  className="w-full bg-secondary-bg border border-border rounded-lg pl-12 pr-4 py-4 text-primary-text placeholder:text-muted-text focus:outline-none focus:border-silver focus:ring-1 focus:ring-silver/50 transition-all duration-300"
+                  onKeyDown={(e) => e.key === 'Enter' && !isScanning && handleStartScan()}
+                  disabled={isScanning}
+                  className={`w-full bg-secondary-bg border rounded-lg pl-12 pr-4 py-4 text-primary-text placeholder:text-muted-text focus:outline-none focus:ring-1 transition-all duration-300 disabled:opacity-60 ${
+                    error
+                      ? 'border-danger focus:border-danger focus:ring-danger/50'
+                      : 'border-border focus:border-silver focus:ring-silver/50'
+                  }`}
                 />
               </div>
               <button
                 onClick={handleStartScan}
-                disabled={!url.trim() || loading}
-                className="btn-primary px-8 py-4 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isScanning}
+                className="btn-primary px-8 py-4 flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <ScanLine className="w-5 h-5" />
-                <span>{loading ? 'Starting...' : 'Start Scan'}</span>
+                {isScanning ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Scanning...</span>
+                  </>
+                ) : (
+                  <>
+                    <ScanLine className="w-5 h-5" />
+                    <span>Start Scan</span>
+                  </>
+                )}
               </button>
             </div>
 
+            {/* Error message */}
             {error && (
-              <div className="mt-4 glass-card-danger p-4 text-center">
+              <div className="mt-4 glass-card-danger p-4 flex items-start gap-3 animate-fade-in">
+                <AlertCircle className="w-5 h-5 text-danger shrink-0 mt-0.5" />
                 <p className="text-danger text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Success message */}
+            {success && !error && (
+              <div className="mt-4 p-4 rounded-lg border border-success/30 bg-success/10 flex items-start gap-3 animate-fade-in">
+                <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                <p className="text-success text-sm">{success}</p>
+              </div>
+            )}
+
+            {/* Progress indicator */}
+            {isScanning && (
+              <div className="mt-6 animate-fade-in">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-secondary-text text-sm font-mono">{progressLabel}</span>
+                  <span className="text-secondary-text text-sm font-mono">{progressPercent}%</span>
+                </div>
+                <div className="h-2 bg-secondary-bg rounded-full overflow-hidden border border-border">
+                  <div
+                    className="h-full bg-danger rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-center mt-4 space-x-2">
+                  <Loader2 className="w-4 h-4 text-danger animate-spin" />
+                  <span className="text-muted-text text-xs font-mono">Do not close this window</span>
+                </div>
               </div>
             )}
           </div>
