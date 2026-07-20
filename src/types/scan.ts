@@ -12,7 +12,7 @@ export interface VulnerabilityReference {
 }
 
 export interface Vulnerability {
-  id: number;
+  id: string;
   severity: Severity;
   title: string;
   cvss: number;
@@ -22,7 +22,7 @@ export interface Vulnerability {
   evidence: string;
   reproduction: string;
   remediation: string;
-  references: VulnerabilityReference[];
+  references?: VulnerabilityReference[];
 }
 
 export interface BusinessImpact {
@@ -45,7 +45,7 @@ export interface VulnerabilityCounts {
 }
 
 export interface ExecutiveReport {
-  source: 'groq' | 'mock';
+  source: 'api' | 'openrouter';
   riskScore: number;
   riskLevel: string;
   executiveSummary: string;
@@ -55,7 +55,7 @@ export interface ExecutiveReport {
 }
 
 export interface TechnicalReport {
-  source: 'groq' | 'mock';
+  source: 'api' | 'openrouter';
   riskScore: number;
   riskLevel: string;
   executiveSummary: string;

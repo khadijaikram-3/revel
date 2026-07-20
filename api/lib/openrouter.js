@@ -8,6 +8,64 @@ import axios from 'axios';
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODEL = 'deepseek/deepseek-chat-v3-0324'; // ✅ Free model
 
+// Helper function to create fallback report when AI fails
+function createFallbackReport(scanData, type) {
+  const vulnerabilities = scanData.vulnerabilities || [];
+  const summary = scanData.summary || { critical: 0, high: 0, medium: 0, low: 0 };
+  
+  const baseReport = {
+    source: 'api',
+    riskScore: scanData.riskScore || 0,
+    riskLevel: scanData.riskLevel || 'Unknown',
+    executiveSummary: `Security assessment found ${vulnerabilities.length} vulnerabilities. ${vulnerabilities.filter(v => v.severity === 'Critical' || v.severity === 'High').length} of these are high-risk.`,
+    vulnerabilityCounts: {
+      critical: summary.critical || 0,
+      high: summary.high || 0,
+      medium: summary.medium || 0,
+      low: summary.low || 0,
+    },
+  };
+
+  if (type === 'executive') {
+    return {
+      ...baseReport,
+      businessImpacts: vulnerabilities.slice(0, 3).map(v => ({
+        title: v.title || 'Security Issue',
+        description: v.description || 'Security vulnerability detected'
+      })),
+      priorityFixes: vulnerabilities.slice(0, 5).map((v, i) => ({
+        number: String(i + 1).padStart(2, '0'),
+        title: v.title || 'Unknown Issue',
+        description: v.remediation || 'No remediation available',
+        severity: v.severity || 'Medium'
+      })),
+    };
+  }
+
+  // Technical fallback
+  return {
+    ...baseReport,
+    vulnerabilities: vulnerabilities.map(v => ({
+      title: v.title || 'Unknown',
+      cvss: v.cvss ?? 0, // ✅ FIX 2: Use nullish coalescing for numbers
+      cve: v.cve || 'N/A',
+      owasp: v.owasp || 'N/A',
+      description: v.description || 'No description available',
+      evidence: v.evidence || 'No evidence available',
+      reproduction: v.reproduction || 'No reproduction steps available',
+      remediation: v.remediation || 'No remediation available',
+      severity: v.severity || 'Medium',
+      status: 'Open'
+    })),
+    summaryTable: vulnerabilities.map(v => ({
+      severity: v.severity || 'Medium',
+      vulnerability: v.title || 'Unknown',
+      cvss: v.cvss ?? 0, // ✅ FIX 2: Use nullish coalescing for numbers
+      status: 'Open'
+    })),
+  };
+}
+
 async function callOpenRouter(systemPrompt, userPrompt) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -27,7 +85,7 @@ async function callOpenRouter(systemPrompt, userPrompt) {
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.7,
-        max_tokens: 4096,
+        max_tokens: 1800, // ✅ FIX 3: Reduced from 4096 to 1800
       },
       {
         headers: {
@@ -43,6 +101,7 @@ async function callOpenRouter(systemPrompt, userPrompt) {
     console.log('[openrouter] Response status:', response.status);
     const content = response.data?.choices?.[0]?.message?.content || '';
     console.log('[openrouter] Response length:', content.length, 'chars');
+    console.log('[openrouter] AI Response content:', content);
     return content;
   } catch (error) {
     console.error('[openrouter] API call failed:', error.response?.status, error.response?.data || error.message);
@@ -59,17 +118,43 @@ async function generateExecutiveReport(scanData) {
     'Use plain English. No technical jargon. Focus on business impact. ' +
     'Return your response as a JSON object with keys: riskScore, riskLevel, executiveSummary, businessImpacts (array of {title, description}), priorityFixes (array of {number, title, description, severity}), vulnerabilityCounts ({critical, high, medium, low}).';
 
-  const userPrompt = `Scan Data:\n${JSON.stringify(scanData, null, 2)}`;
+  // Reduce apiResults to essential data only
+  const reducedScanData = {
+    ...scanData,
+    apiResults: scanData.apiResults ? {
+      ssl: scanData.apiResults.ssl,
+      malware: scanData.apiResults.malware,
+      ports: scanData.apiResults.ports,
+      headers: scanData.apiResults.headers,
+    } : undefined,
+  };
+
+  const userPrompt = `Scan Data:\n${JSON.stringify(reducedScanData, null, 2)}`;
 
   try {
     console.log('[openrouter] Generating executive report...');
     const text = await callOpenRouter(systemPrompt, userPrompt);
-    const parsed = JSON.parse(text);
-    console.log('[openrouter] Executive report parsed OK — riskScore:', parsed.riskScore);
-    return { source: 'openrouter', ...parsed };
+    
+    // ✅ FIX 1: Safer JSON extraction using indexOf/lastIndexOf
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+
+    if (start === -1 || end === -1) {
+      console.error('[openrouter] Executive: No JSON found in AI response');
+      throw new Error('No JSON found');
+    }
+
+    const parsed = JSON.parse(text.substring(start, end + 1));
+    console.log('[openrouter] Executive report parsed OK');
+
+    return {
+      source: 'openrouter',
+      ...parsed,
+    };
+
   } catch (error) {
     console.error('[openrouter] Executive report generation failed:', error.message);
-    return generateMockExecutiveReport(scanData);
+    return createFallbackReport(scanData, 'executive');
   }
 }
 
@@ -82,17 +167,43 @@ async function generateTechnicalReport(scanData) {
     'Use technical language. Include exact commands. Reference CVSS, CVE, OWASP where applicable. ' +
     'Return your response as a JSON object with keys: riskScore, riskLevel, executiveSummary, vulnerabilities (array with all fields), summaryTable (array of {severity, vulnerability, cvss, status}).';
 
-  const userPrompt = `Scan Data:\n${JSON.stringify(scanData, null, 2)}`;
+  // Reduce apiResults to essential data only
+  const reducedScanData = {
+    ...scanData,
+    apiResults: scanData.apiResults ? {
+      ssl: scanData.apiResults.ssl,
+      malware: scanData.apiResults.malware,
+      ports: scanData.apiResults.ports,
+      headers: scanData.apiResults.headers,
+    } : undefined,
+  };
+
+  const userPrompt = `Scan Data:\n${JSON.stringify(reducedScanData, null, 2)}`;
 
   try {
     console.log('[openrouter] Generating technical report...');
     const text = await callOpenRouter(systemPrompt, userPrompt);
-    const parsed = JSON.parse(text);
-    console.log('[openrouter] Technical report parsed OK — riskScore:', parsed.riskScore, '— vulns:', parsed.vulnerabilities?.length || 0);
-    return { source: 'openrouter', ...parsed };
+    
+    // ✅ FIX 1: Safer JSON extraction using indexOf/lastIndexOf
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+
+    if (start === -1 || end === -1) {
+      console.error('[openrouter] Technical: No JSON found in AI response');
+      throw new Error('No JSON found');
+    }
+
+    const parsed = JSON.parse(text.substring(start, end + 1));
+    console.log('[openrouter] Technical report parsed OK');
+
+    return {
+      source: 'openrouter',
+      ...parsed,
+    };
+
   } catch (error) {
     console.error('[openrouter] Technical report generation failed:', error.message);
-    return generateMockTechnicalReport(scanData);
+    return createFallbackReport(scanData, 'technical');
   }
 }
 
@@ -104,47 +215,6 @@ async function generateReports(scanData) {
   ]);
   console.log('[openrouter] Both reports generated — exec source:', executive.source, '— tech source:', technical.source);
   return { executive, technical };
-}
-
-function generateMockExecutiveReport(scanData) {
-  const counts = scanData.summary || { Critical: 0, High: 0, Medium: 0, Low: 0 };
-  return {
-    source: 'mock',
-    riskScore: scanData.riskScore || 72,
-    riskLevel: scanData.riskLevel || 'High',
-    executiveSummary: `This report summarizes the findings of an external security assessment of ${scanData.targetUrl}. The assessment identified ${scanData.vulnerabilities?.length || 0} vulnerabilities that could impact business operations, customer trust, and regulatory compliance. Immediate action is recommended for critical findings.`,
-    businessImpacts: [
-      { title: 'Customer Data Exposure', description: 'Attackers could steal customer information, leading to privacy violations and loss of trust.' },
-      { title: 'Operational Disruption', description: 'Exploitation could cause service outages, affecting revenue and user experience.' },
-      { title: 'Reputational Damage', description: 'Public disclosure of vulnerabilities could harm your brand image.' },
-    ],
-    priorityFixes: [
-      { number: '01', title: 'Close database port 3306', description: 'Contact your hosting provider to block external access.', severity: 'Critical' },
-      { number: '02', title: 'Enable HTTPS', description: 'Install an SSL certificate to encrypt user data.', severity: 'Critical' },
-      { number: '03', title: 'Add authentication to admin panel', description: 'Require strong passwords and multi-factor authentication.', severity: 'High' },
-      { number: '04', title: 'Update security headers', description: 'Add CSP, HSTS, and X-Frame-Options.', severity: 'Medium' },
-      { number: '05', title: 'Update outdated frameworks', description: 'Run a security update on all dependencies.', severity: 'Medium' },
-    ],
-    vulnerabilityCounts: {
-      critical: counts.Critical || 0,
-      high: counts.High || 0,
-      medium: counts.Medium || 0,
-      low: counts.Low || 0,
-    },
-  };
-}
-
-function generateMockTechnicalReport(scanData) {
-  return {
-    source: 'mock',
-    riskScore: scanData.riskScore || 72,
-    riskLevel: scanData.riskLevel || 'High',
-    executiveSummary: `An external security assessment of ${scanData.targetUrl} identified ${scanData.vulnerabilities?.length || 0} vulnerabilities across multiple severity levels. The most critical finding is a SQL injection in the login endpoint (CVSS 9.8) enabling authentication bypass and data exfiltration. Immediate remediation is required.`,
-    vulnerabilities: scanData.vulnerabilities || [],
-    summaryTable: (scanData.vulnerabilities || []).map((v) => ({
-      severity: v.severity, vulnerability: v.title, cvss: v.cvss, status: 'Open',
-    })),
-  };
 }
 
 export { generateReports, generateExecutiveReport, generateTechnicalReport };

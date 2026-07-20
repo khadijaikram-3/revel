@@ -11,10 +11,11 @@ import { ScanProvider } from './context/ScanContext';
 
 function App() {
   return (
-    <Router>
-      <SplashScreen />
-      <ScanProvider>
+    <ScanProvider>
+      <Router>
+        <SplashScreen />
         <ScrollToTop />
+
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/scan" element={<ScanPage />} />
@@ -23,8 +24,9 @@ function App() {
           <Route path="/executive-report" element={<ExecutiveReportPage />} />
           <Route path="/technical-report" element={<TechnicalReportPage />} />
         </Routes>
-      </ScanProvider>
-    </Router>
+
+      </Router>
+    </ScanProvider>
   );
 }
 

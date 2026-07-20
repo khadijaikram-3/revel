@@ -1,8 +1,12 @@
 /**
  * @api {post} /api/scan Start a security scan
  * Uses ONLY real data from Shodan InternetDB, VirusTotal, and OpenRouter.
- * NO MOCK DATA.
  */
+import { validateTargetUrl } from "./lib/validators.js";
+import { calculateRisk } from "./lib/riskEngine.js";
+//import { buildVulnerabilities } from "./lib/vulnerabilityBuilder.js";
+//import { buildReports } from "./lib/reportBuilder.js";
+
 export default async function handler(req, res) {
   console.log('\n========== /api/scan START ==========');
 
@@ -11,11 +15,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { url: targetUrl } = req.body || {};
-    console.log('[scan] URL received:', targetUrl);
+    const startedAt = Date.now();
+    const { url } = req.body || {};
 
-    if (!targetUrl) {
-      return res.status(400).json({ error: 'URL is required' });
+    let targetUrl;
+    let hostname;
+
+    try {
+      const validated = validateTargetUrl(url);
+      targetUrl = validated.normalizedUrl;
+      hostname = validated.hostname;
+      console.log("[scan] Normalized URL:", targetUrl);
+    } catch (err) {
+      return res.status(400).json({
+        error: err.message,
+      });
     }
 
     const { createScan, updateScan } = await import('./lib/scanStore.js');
@@ -39,11 +53,65 @@ export default async function handler(req, res) {
     // 3. Build vulnerability list from REAL data ONLY
     const vulnerabilities = [];
     let riskScore = 10;
-    const hostname = new URL(targetUrl).hostname;
 
-    // ✅ Shodan InternetDB — REAL open ports + vulnerabilities
-    if (apiResults.shodan?.data) {
-      const shodanData = apiResults.shodan.data;
+    // Check headers
+    console.log("[scan] Headers result:", apiResults.headers);
+    
+    if (apiResults.headers?.status === 'success') {
+      const h = apiResults.headers.data;
+
+      if (h['Content-Security-Policy'] === 'Missing') {
+        vulnerabilities.push({
+          id: 'missing-csp',
+          title: 'Missing Content Security Policy',
+          severity: 'Medium',
+          cvss: 6.5,
+          cve: 'N/A',
+          owasp: 'A05:2021 - Security Misconfiguration',
+          description: 'The website does not define a Content Security Policy.',
+          evidence: 'CSP header missing.',
+          reproduction: `curl -I ${targetUrl}`,
+          remediation: 'Add a Content-Security-Policy response header.',
+        });
+        riskScore += 10;
+      }
+
+      if (h['Strict-Transport-Security'] === 'Missing') {
+        vulnerabilities.push({
+          id: 'missing-hsts',
+          title: 'Missing HSTS Header',
+          severity: 'Medium',
+          cvss: 6.3,
+          cve: 'N/A',
+          owasp: 'A05:2021 - Security Misconfiguration',
+          description: 'Strict Transport Security is not enabled.',
+          evidence: 'HSTS header missing.',
+          reproduction: `curl -I ${targetUrl}`,
+          remediation: 'Enable HSTS.',
+        });
+        riskScore += 8;
+      }
+
+      if (h['X-Content-Type-Options'] === 'Missing') {
+        vulnerabilities.push({
+          id: 'missing-nosniff',
+          title: 'Missing X-Content-Type-Options',
+          severity: 'Low',
+          cvss: 3.7,
+          cve: 'N/A',
+          owasp: 'A05:2021 - Security Misconfiguration',
+          description: 'Browser MIME sniffing protection is missing.',
+          evidence: 'Header missing.',
+          reproduction: `curl -I ${targetUrl}`,
+          remediation: 'Set X-Content-Type-Options: nosniff',
+        });
+        riskScore += 4;
+      }
+    }
+
+    // Shodan InternetDB — REAL open ports + vulnerabilities
+    if (apiResults.ports?.data) {
+      const shodanData = apiResults.ports.data;
       
       // Open ports
       if (shodanData.ports && shodanData.ports.length > 0) {
@@ -52,7 +120,7 @@ export default async function handler(req, res) {
           let cvss = 3.0;
           let description = `Port ${port} is open on this host.`;
           
-          // ✅ Categorize ports by risk
+          // Categorize ports by risk
           if ([22, 23, 3389, 3306, 5432, 27017, 6379].includes(port)) {
             severity = 'High';
             cvss = 7.5;
@@ -79,7 +147,7 @@ export default async function handler(req, res) {
         });
       }
       
-      // ✅ Shodan known vulnerabilities (CVE)
+      // Shodan known vulnerabilities (CVE)
       if (shodanData.vulns && Object.keys(shodanData.vulns).length > 0) {
         Object.keys(shodanData.vulns).forEach((cveId) => {
           vulnerabilities.push({
@@ -99,9 +167,26 @@ export default async function handler(req, res) {
       }
     }
 
-    // ✅ VirusTotal — REAL malware detection
-    if (apiResults.virustotal?.data?.data?.attributes?.last_analysis_stats) {
-      const stats = apiResults.virustotal.data.data.attributes.last_analysis_stats;
+    // Admin panels check
+    if (apiResults.adminPanels?.status === 'success' && apiResults.adminPanels?.data?.count > 0) {
+      vulnerabilities.push({
+        id: 'admin-panels',
+        title: 'Administrative Interfaces Exposed',
+        severity: 'Medium',
+        cvss: 6.8,
+        cve: 'N/A',
+        owasp: 'A05:2021 - Security Misconfiguration',
+        description: `${apiResults.adminPanels.data.count} administrative endpoints were discovered.`,
+        evidence: apiResults.adminPanels.data.found.join(', '),
+        reproduction: 'Visit the discovered endpoints.',
+        remediation: 'Restrict access to administrative interfaces.',
+      });
+      riskScore += 15;
+    }
+
+    // VirusTotal — REAL malware detection
+    if (apiResults.malware?.status === "success") {
+      const stats = apiResults.malware.data;
       if (stats.malicious > 0) {
         vulnerabilities.push({
           id: 'vt-malicious',
@@ -119,7 +204,17 @@ export default async function handler(req, res) {
       }
     }
 
-    // ✅ Calculate REAL risk score
+    // Calculate REAL risk score
+    riskScore = Math.min(riskScore, 100);
+
+    if (vulnerabilities.some(v => v.severity === "Critical")) {
+      riskScore = Math.max(riskScore, 90);
+    } else if (vulnerabilities.some(v => v.severity === "High")) {
+      riskScore = Math.max(riskScore, 70);
+    } else if (vulnerabilities.some(v => v.severity === "Medium")) {
+      riskScore = Math.max(riskScore, 45);
+    }
+
     const riskLevel = riskScore > 65 ? 'High' : riskScore > 35 ? 'Medium' : 'Low';
     console.log('[scan] REAL risk score:', riskScore, riskLevel);
     console.log('[scan] Vulnerabilities found:', vulnerabilities.length);
@@ -140,52 +235,18 @@ export default async function handler(req, res) {
       },
     };
 
-    // 5. Generate AI reports from REAL data
-    console.log('[scan] Generating AI reports with REAL data...');
-    let executive, technical;
+    // 5. Generate reports from REAL scan data
+    console.log("[scan] Generating AI reports...");
+    let executive = null;
+    let technical = null;
+
     try {
       const reports = await generateReports(scanData);
       executive = reports.executive;
       technical = reports.technical;
-      console.log('[scan] AI reports generated successfully');
+      console.log("[scan] AI reports generated.");
     } catch (err) {
-      console.error('[scan] AI generation failed:', err.message);
-      // ✅ Create a basic report from REAL data (no mock)
-      executive = {
-        source: 'api',
-        riskScore: riskScore,
-        riskLevel: riskLevel,
-        executiveSummary: `Security assessment of ${targetUrl} found ${vulnerabilities.length} issues. ${vulnerabilities.filter(v => v.severity === 'Critical' || v.severity === 'High').length} of these are high-risk.`,
-        businessImpacts: vulnerabilities.slice(0, 3).map(v => ({
-          title: v.title,
-          description: v.description
-        })),
-        priorityFixes: vulnerabilities.slice(0, 5).map((v, i) => ({
-          number: String(i + 1).padStart(2, '0'),
-          title: v.title,
-          description: v.remediation,
-          severity: v.severity
-        })),
-        vulnerabilityCounts: {
-          critical: vulnerabilities.filter(v => v.severity === 'Critical').length,
-          high: vulnerabilities.filter(v => v.severity === 'High').length,
-          medium: vulnerabilities.filter(v => v.severity === 'Medium').length,
-          low: vulnerabilities.filter(v => v.severity === 'Low').length,
-        },
-      };
-      technical = {
-        source: 'api',
-        riskScore: riskScore,
-        riskLevel: riskLevel,
-        executiveSummary: `Assessment of ${targetUrl} found ${vulnerabilities.length} issues.`,
-        vulnerabilities: vulnerabilities,
-        summaryTable: vulnerabilities.map((v) => ({
-          severity: v.severity,
-          vulnerability: v.title,
-          cvss: v.cvss,
-          status: 'Open',
-        })),
-      };
+      console.error("[scan] AI Report Error:", err.message);
     }
 
     // 6. Update scan with REAL results
@@ -193,16 +254,20 @@ export default async function handler(req, res) {
       status: 'complete',
       risk_score: riskScore,
       risk_level: riskLevel,
+      api_results: apiResults,
       vulnerabilities: vulnerabilities,
       executive_report: executive,
       technical_report: technical,
     });
 
-    console.log('[scan] ✅ Scan completed with REAL data!');
+    const duration = Date.now() - startedAt;
+    console.log(`[scan] ✅ Scan completed in ${duration} ms with REAL data!`);
+    
     return res.status(200).json({
       scanId: scan.id,
       status: 'complete',
       targetUrl,
+      duration,
     });
   } catch (error) {
     console.error('[scan] ERROR:', error.message);
@@ -210,7 +275,7 @@ export default async function handler(req, res) {
   }
 }
 
-// ✅ Helper functions for port information
+// Helper functions for port information
 function getPortName(port) {
   const portMap = {
     20: 'FTP (Data)',

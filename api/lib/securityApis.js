@@ -9,28 +9,61 @@ export async function runSecurityAPIChecks(targetUrl) {
   const results = {};
 
   // 1. ✅ SSL/TLS Check (Real)
-  console.log('[securityApis] Checking SSL/TLS...');
-  try {
-    // Use a free SSL checker API
-    const sslResponse = await fetch(`https://api.ssllabs.com/api/v3/analyze?host=${hostname}&all=done`);
-    if (sslResponse.ok) {
-      const sslData = await sslResponse.json();
-      results.ssl = {
-        status: 'success',
-        data: {
-          grade: sslData.endpoints?.[0]?.grade || 'Unknown',
-          hasHSTS: sslData.endpoints?.[0]?.details?.hstsPolicy || false,
-          protocol: sslData.endpoints?.[0]?.details?.protocol || 'Unknown',
-        }
-      };
-      console.log('[securityApis] SSL check complete');
-    } else {
-      results.ssl = { status: 'error', error: `SSL Labs API returned ${sslResponse.status}` };
+console.log('[securityApis] Checking SSL/TLS...');
+
+try {
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 10000); // 10 seconds max
+
+  const sslResponse = await fetch(
+    `https://api.ssllabs.com/api/v3/analyze?host=${hostname}`,
+    {
+      signal: controller.signal,
     }
-  } catch (err) {
-    results.ssl = { status: 'error', error: err.message };
-    console.log('[securityApis] SSL check failed:', err.message);
+  );
+
+  clearTimeout(timeout);
+
+  if (sslResponse.ok) {
+    const sslData = await sslResponse.json();
+
+    results.ssl = {
+      status: 'success',
+      data: {
+        grade: sslData.endpoints?.[0]?.grade || 'Pending',
+        hasHSTS:
+          sslData.endpoints?.[0]?.details?.hstsPolicy || false,
+        protocol:
+          sslData.endpoints?.[0]?.details?.protocol || 'Unknown',
+      }
+    };
+
+    console.log('[securityApis] SSL check complete');
+  } else {
+    results.ssl = {
+      status: 'warning',
+      data: {
+        grade: 'Unknown',
+        message: `SSL Labs returned ${sslResponse.status}`
+      }
+    };
   }
+
+} catch (err) {
+
+  results.ssl = {
+    status: 'warning',
+    data: {
+      grade: 'Pending',
+      message: 'SSL analysis timed out'
+    }
+  };
+
+  console.log('[securityApis] SSL check skipped:', err.message);
+}
 
   // 2. ✅ Security Headers Check (Real)
   console.log('[securityApis] Checking Security Headers...');
@@ -91,27 +124,31 @@ export async function runSecurityAPIChecks(targetUrl) {
     results.dns = { status: 'error', error: err.message };
   }
 
-  // 5. ✅ CSP Check (Real) — Already included in headers, but let's add details
-  console.log('[securityApis] Checking CSP details...');
-  if (results.headers?.data?.['Content-Security-Policy'] !== 'Missing') {
-    const csp = results.headers.data['Content-Security-Policy'];
-    results.csp = {
-      status: 'success',
-      data: {
-        present: true,
-        value: csp,
-        hasDefaultSrc: csp.includes('default-src'),
-        hasScriptSrc: csp.includes('script-src'),
-        hasStyleSrc: csp.includes('style-src'),
-      }
-    };
-  } else {
-    results.csp = { 
-      status: 'warning', 
-      data: { present: false, message: 'CSP header is missing' } 
-    };
-  }
+  // 5. ✅ CSP Check (Real)
+console.log('[securityApis] Checking CSP details...');
 
+const csp = results.headers?.data?.['Content-Security-Policy'];
+
+if (csp && csp !== 'Missing') {
+  results.csp = {
+    status: 'success',
+    data: {
+      present: true,
+      value: csp,
+      hasDefaultSrc: csp.includes('default-src'),
+      hasScriptSrc: csp.includes('script-src'),
+      hasStyleSrc: csp.includes('style-src'),
+    }
+  };
+} else {
+  results.csp = {
+    status: 'warning',
+    data: {
+      present: false,
+      message: 'CSP header is missing'
+    }
+  };
+}
   // 6. ✅ Admin Panels Check (Real) — Try common admin paths
   console.log('[securityApis] Checking for exposed admin panels...');
   const adminPaths = ['/admin', '/wp-admin', '/administrator', '/login', '/cpanel', '/phpmyadmin'];
